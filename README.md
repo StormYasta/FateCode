@@ -107,18 +107,45 @@ FateCode/
 ### Pré-requisitos
 - Node.js v20+ ou v22+
 - NPM v10+
-- Docker (opcional para Postgres/Redis ou deploy completo)
+- Docker Desktop / Docker Engine com Compose
 
-### Execução Local (Frontend + Backend)
+### Bootstrap local recomendado
+
+Na primeira execução, instale as dependências, crie o `.env` local e suba somente os serviços de infraestrutura:
 
 ```bash
-# 1. Iniciar o Frontend React (Vite na porta 5173)
+npm install
+```
+
+No PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up -d postgres redis
+```
+
+No Linux/macOS:
+
+```bash
+cp .env.example .env
+docker compose up -d postgres redis
+```
+
+O `.env.example` usa `localhost:5432` porque o Prisma executado na máquina host acessa a porta publicada pelo Docker. Já os containers `api` e `worker` usam o hostname interno `postgres` configurado no `docker-compose.yml`.
+
+Depois inicialize o banco:
+
+```bash
+npx prisma generate
+npx prisma migrate dev --name init
+npm run prisma:seed
+```
+
+Por fim, execute os serviços de aplicação:
+
+```bash
 npm run dev:web
-
-# 2. Iniciar a API Fastify Backend (porta 3001)
 npm run dev:api
-
-# 3. Iniciar o Worker
 npm run dev:worker
 ```
 
@@ -127,7 +154,39 @@ npm run dev:worker
 - **Documentação Swagger/OpenAPI**: [http://localhost:3001/docs](http://localhost:3001/docs)
 - **Healthcheck**: [http://localhost:3001/api/health](http://localhost:3001/api/health)
 
----
+### Prisma `P1000: Authentication failed`
+
+Se o Prisma encontrar a `DATABASE_URL`, mas retornar `P1000`, primeiro confirme que a conexão está chegando ao PostgreSQL do Docker e não a outro PostgreSQL instalado na máquina:
+
+```bash
+docker compose ps
+```
+
+A porta do serviço `postgres` deve estar publicada como `0.0.0.0:5432->5432/tcp` (ou equivalente).
+
+Teste as credenciais **dentro do próprio container**:
+
+```bash
+docker exec -it fatecode_postgres psql -U postgres -d fatecode -c "SELECT current_user, current_database();"
+```
+
+Se esse comando funcionar, mas o Prisma continuar retornando `P1000`, verifique se outro processo está usando a porta 5432 no host antes do Docker.
+
+No Windows:
+
+```powershell
+Get-NetTCPConnection -LocalPort 5432 -State Listen | Select-Object LocalAddress,LocalPort,OwningProcess
+Get-Process -Id <PID>
+```
+
+Se o container foi inicializado anteriormente com credenciais diferentes e os dados locais puderem ser descartados, é possível recriar o volume de desenvolvimento. **Este comando apaga o banco local e não deve ser usado quando houver dados que precisam ser preservados:**
+
+```bash
+docker compose down -v
+docker compose up -d postgres redis
+npx prisma migrate dev --name init
+npm run prisma:seed
+```
 
 ### Execução via Docker Compose (Full Stack)
 
