@@ -14,6 +14,7 @@ import { Classes } from './pages/Classes';
 import { ClassDetail } from './pages/ClassDetail';
 import { Profile } from './pages/Profile';
 import { CodewarsImport } from './pages/CodewarsImport';
+import { CodewarsBulkImport } from './pages/CodewarsBulkImport';
 import { ChallengeSolve } from './pages/ChallengeSolve';
 import { Rankings } from './pages/Rankings';
 import { TeacherDashboard } from './pages/TeacherDashboard';
@@ -42,6 +43,7 @@ export const App: React.FC = () => {
               <Route path="/classes/:id" element={<ClassDetail />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/codewars-import" element={<CodewarsImport />} />
+              <Route path="/codewars-import/bulk" element={<CodewarsBulkImport />} />
               <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
               <Route path="/teacher/challenges" element={<TeacherChallenges />} />
               <Route path="/backoffice" element={<Backoffice />} />
