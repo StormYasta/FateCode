@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { 
-  ListChecks, 
-  Clock, 
-  Star, 
-  ArrowRight, 
+import {
+  ListChecks,
+  Clock,
+  Star,
+  ArrowRight,
   Code2,
   GraduationCap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Assignments: React.FC = () => {
-  const { user } = useAuth();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +36,6 @@ export const Assignments: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center space-x-2">
@@ -57,7 +54,6 @@ export const Assignments: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid / List of Assignments */}
       {loading ? (
         <div className="p-12 text-center text-slate-400">Carregando atividades...</div>
       ) : assignments.length === 0 ? (
@@ -116,7 +112,7 @@ export const Assignments: React.FC = () => {
                 </span>
 
                 <Link
-                  to={`/challenges/${assignment.challenge?.slug || assignment.challengeId}`}
+                  to={`/challenges/${assignment.challenge?.slug || assignment.challengeId}?assignmentId=${assignment.id}`}
                   className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg shadow-indigo-600/30 transition-all"
                 >
                   <span>Resolver no Editor</span>
