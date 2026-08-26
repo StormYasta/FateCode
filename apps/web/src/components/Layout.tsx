@@ -1,11 +1,13 @@
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 
 export const Layout: React.FC = () => {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
+  const isEnvironmentSelector = location.pathname === '/';
 
   if (isLoading) {
     return (
@@ -26,8 +28,8 @@ export const Layout: React.FC = () => {
     <div className="min-h-screen bg-[#090d16] flex flex-col">
       <Navbar />
       <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
+        {!isEnvironmentSelector && <Sidebar />}
+        <main className={`flex-1 p-6 md:p-8 mx-auto w-full overflow-y-auto ${isEnvironmentSelector ? 'max-w-[1440px]' : 'max-w-7xl'}`}>
           <Outlet />
         </main>
       </div>
