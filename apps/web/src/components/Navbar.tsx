@@ -1,17 +1,18 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Flame, Star, Trophy, LogOut, User as UserIcon, Shield } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
+import { Flame, Star, LogOut, Shield, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const totalXP = user?.profile?.totalXP || 0;
   const currentStreak = user?.streak?.currentStreak || 0;
 
   return (
     <header className="h-16 bg-[#0f1629]/90 backdrop-blur border-b border-slate-800/80 px-6 flex items-center justify-between sticky top-0 z-40">
-      {/* Brand */}
       <div className="flex items-center space-x-3">
         <Link to="/" className="flex items-center space-x-2.5 group">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-0.5 shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
@@ -30,30 +31,34 @@ export const Navbar: React.FC = () => {
         </Link>
       </div>
 
-      {/* Gamification Quick Stats & User Menu */}
       {user && (
-        <div className="flex items-center space-x-4">
-          {/* Streak pill */}
+        <div className="flex items-center space-x-3 sm:space-x-4">
           <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-sm shadow-sm">
             <Flame className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
             <span className="font-bold">{currentStreak}</span>
             <span className="text-xs text-amber-400/80">dias</span>
           </div>
 
-          {/* XP pill */}
           <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-sm shadow-sm">
             <Star className="w-4 h-4 text-indigo-400 fill-indigo-400/50" />
             <span className="font-bold">{totalXP.toLocaleString('pt-BR')}</span>
             <span className="text-xs text-indigo-300/80">XP</span>
           </div>
 
-          {/* Role badge */}
-          <div className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+            className="p-2 rounded-xl border border-slate-700 bg-slate-900/70 text-slate-300 hover:text-indigo-400 hover:border-indigo-500/40 transition-colors"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+
+          <div className="hidden md:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-xs font-semibold">
             <Shield className="w-3 h-3 text-indigo-400" />
             <span className="text-slate-300">{user.role}</span>
           </div>
 
-          {/* User profile dropdown link */}
           <Link
             to="/profile"
             className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-slate-800/60 transition-colors"
@@ -61,12 +66,11 @@ export const Navbar: React.FC = () => {
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center font-bold text-sm text-white shadow">
               {user.name.charAt(0).toUpperCase()}
             </div>
-            <span className="hidden md:inline text-sm font-medium text-slate-200">
+            <span className="hidden lg:inline text-sm font-medium text-slate-200">
               {user.name}
             </span>
           </Link>
 
-          {/* Logout */}
           <button
             onClick={logout}
             title="Sair da conta"
