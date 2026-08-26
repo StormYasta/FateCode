@@ -92,7 +92,7 @@ export const Sidebar: React.FC = () => {
             </p>
             <NavLink to="/teacher/dashboard" className={linkClass}>
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Painel Docente & Integridade</span>
+              <span>Dashboard Docente</span>
             </NavLink>
             <NavLink to="/teacher/challenges" className={linkClass}>
               <Wrench className="w-4 h-4 text-indigo-400" />
@@ -121,8 +121,8 @@ export const Sidebar: React.FC = () => {
       </div>
 
       <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-3 px-2 flex justify-between items-center">
-        <span>FateCode v1.3.0</span>
-        <span className="text-emerald-400 font-semibold font-mono">Backoffice</span>
+        <span>FateCode v1.4.0</span>
+        <span className="text-emerald-400 font-semibold font-mono">Analytics</span>
       </div>
     </aside>
   );
