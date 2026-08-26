@@ -50,8 +50,11 @@ services:
       REDIS_PORT: 6379
       JWT_SECRET: supersecret_fatecode_jwt_key_development_only_2026!
       CORS_ORIGIN: http://localhost:5173
+      UPLOAD_DIR: /app/uploads
     ports:
       - "3001:3001"
+    volumes:
+      - class_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,6 +98,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  class_uploads:
 
 networks:
   fatecode_network:

@@ -2,10 +2,11 @@ import { FastifyInstance } from 'fastify';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../plugins/prisma.js';
 import { authenticate } from '../middlewares/authenticate.js';
-import { registerSchema, loginSchema, Role } from '@fatecode/shared';
+import { registerSchema, loginSchema } from '@fatecode/shared';
 
 export async function authRoutes(fastify: FastifyInstance) {
-  // Register new user
+  // Public registration is intentionally restricted to students.
+  // Professor/admin accounts are provisioned through the authenticated backoffice.
   fastify.post('/register', async (request, reply) => {
     const parseResult = registerSchema.safeParse(request.body);
     if (!parseResult.success) {
@@ -15,9 +16,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const { name, email, password, role } = parseResult.data;
+    const { name, email, password } = parseResult.data;
 
-    // Check if user already exists
     const existing = await (prisma as any).user.findUnique({
       where: { email: email.toLowerCase() },
     });
@@ -36,7 +36,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         name,
         email: email.toLowerCase(),
         passwordHash,
-        role: (role as Role) || 'STUDENT',
+        role: 'STUDENT',
         profile: {
           create: {
             totalXP: 0,

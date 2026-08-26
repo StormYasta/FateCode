@@ -5,6 +5,18 @@ import { requireRole } from '../middlewares/requireRole.js';
 import { IntegrityAnalysisService } from '../services/integrity.service.js';
 import { z } from 'zod';
 
+async function teacherCanAccessClass(userId: string, classId: string) {
+  const membership = await (prisma as any).classMember.findFirst({
+    where: {
+      classId,
+      userId,
+      role: { in: ['PROFESSOR', 'ASSISTANT'] },
+    },
+    select: { id: true },
+  });
+  return Boolean(membership);
+}
+
 export async function integrityRoutes(fastify: FastifyInstance) {
   // Record Development Event from Editor
   fastify.post('/challenges/:id/events', { preHandler: [authenticate] }, async (request, reply) => {
@@ -56,6 +68,28 @@ export async function integrityRoutes(fastify: FastifyInstance) {
     { preHandler: [authenticate, requireRole(['ADMIN', 'PROFESSOR'])] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
+      const user = (request as any).user;
+
+      const submission = await (prisma as any).submission.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          assignment: {
+            select: { classId: true },
+          },
+        },
+      });
+
+      if (!submission) {
+        return reply.status(404).send({ error: 'Not Found', message: 'Submissão não encontrada.' });
+      }
+
+      if (user.role !== 'ADMIN') {
+        const classId = submission.assignment?.classId;
+        if (!classId || !(await teacherCanAccessClass(user.id, classId))) {
+          return reply.status(403).send({ error: 'Forbidden', message: 'Você não tem acesso a esta submissão acadêmica.' });
+        }
+      }
 
       try {
         const report = await IntegrityAnalysisService.analyzeSubmission(id);
@@ -72,14 +106,15 @@ export async function integrityRoutes(fastify: FastifyInstance) {
     { preHandler: [authenticate, requireRole(['ADMIN', 'PROFESSOR'])] },
     async (request, reply) => {
       const { id: classId } = request.params as { id: string };
+      const user = (request as any).user;
+
+      if (user.role !== 'ADMIN' && !(await teacherCanAccessClass(user.id, classId))) {
+        return reply.status(403).send({ error: 'Forbidden', message: 'Você não está vinculado a esta turma.' });
+      }
 
       const submissions = await (prisma as any).submission.findMany({
         where: {
-          user: {
-            classMemberships: {
-              some: { classId },
-            },
-          },
+          assignment: { classId },
         },
         include: {
           user: {

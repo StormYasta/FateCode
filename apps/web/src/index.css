@@ -6,6 +6,7 @@
   body {
     @apply bg-[#090d16] text-slate-100;
     font-family: 'Inter', sans-serif;
+    transition: background-color 180ms ease, color 180ms ease;
   }
 
   code, pre, .font-mono {
@@ -49,4 +50,91 @@
 .glow-border-amber:hover {
   border-color: rgba(245, 158, 11, 0.5);
   box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.2);
+}
+
+/* Light theme compatibility layer for the current Tailwind dark palette. */
+html[data-theme='light'] body {
+  background: #f4f7fb;
+  color: #0f172a;
+}
+
+html[data-theme='light'] ::-webkit-scrollbar-track {
+  background: #e8eef6;
+}
+
+html[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: #b8c4d4;
+}
+
+html[data-theme='light'] [class*="bg-[#09"],
+html[data-theme='light'] [class*="bg-[#0c"],
+html[data-theme='light'] [class*="bg-[#0d"],
+html[data-theme='light'] [class*="bg-[#0f"],
+html[data-theme='light'] [class*="bg-[#12"],
+html[data-theme='light'] [class*="from-[#0"],
+html[data-theme='light'] [class*="from-[#1"] {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+html[data-theme='light'] .bg-slate-950,
+html[data-theme='light'] .bg-slate-950\/60,
+html[data-theme='light'] .bg-slate-900,
+html[data-theme='light'] .bg-slate-900\/90,
+html[data-theme='light'] .bg-slate-900\/80,
+html[data-theme='light'] .bg-slate-900\/70,
+html[data-theme='light'] .bg-slate-900\/60,
+html[data-theme='light'] .bg-slate-800,
+html[data-theme='light'] .bg-slate-800\/60 {
+  background-color: #f8fafc !important;
+}
+
+html[data-theme='light'] .border-slate-800,
+html[data-theme='light'] .border-slate-800\/80,
+html[data-theme='light'] .border-slate-800\/90,
+html[data-theme='light'] .border-slate-800\/60,
+html[data-theme='light'] .border-slate-700 {
+  border-color: #dbe4ef !important;
+}
+
+html[data-theme='light'] .text-white,
+html[data-theme='light'] .text-slate-100,
+html[data-theme='light'] .text-slate-200,
+html[data-theme='light'] .text-slate-300 {
+  color: #172033 !important;
+}
+
+html[data-theme='light'] .text-slate-400 {
+  color: #5f6f85 !important;
+}
+
+html[data-theme='light'] .text-slate-500 {
+  color: #718096 !important;
+}
+
+html[data-theme='light'] [class*="bg-indigo-"].text-white,
+html[data-theme='light'] [class*="bg-rose-"].text-white,
+html[data-theme='light'] [class*="bg-emerald-"].text-white,
+html[data-theme='light'] [class*="from-indigo-"].text-white,
+html[data-theme='light'] [class*="from-purple-"].text-white,
+html[data-theme='light'] [class*="from-amber-"].text-white,
+html[data-theme='light'] button[class*="bg-indigo-"] .text-white,
+html[data-theme='light'] a[class*="bg-indigo-"] .text-white {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] input,
+html[data-theme='light'] textarea,
+html[data-theme='light'] select {
+  color: #172033;
+}
+
+html[data-theme='light'] input::placeholder,
+html[data-theme='light'] textarea::placeholder {
+  color: #8a98aa;
+}
+
+html[data-theme='light'] .glow-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #dbe4ef;
 }

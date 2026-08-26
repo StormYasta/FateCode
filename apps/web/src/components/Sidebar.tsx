@@ -13,11 +13,15 @@ import {
   DownloadCloud,
   Code2,
   Dumbbell,
+  Wrench,
+  Settings,
+  Layers3,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
   const isTeacherOrAdmin = user?.role === 'ADMIN' || user?.role === 'PROFESSOR';
+  const isAdmin = user?.role === 'ADMIN';
 
   const navItems = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -29,6 +33,13 @@ export const Sidebar: React.FC = () => {
     { label: 'Turmas & Alunos', path: '/classes', icon: GraduationCap },
     { label: 'Meu Perfil', path: '/profile', icon: User },
   ];
+
+  const linkClass = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${
+      isActive
+        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+        : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+    }`;
 
   return (
     <aside className="w-64 bg-[#0c1222] border-r border-slate-800/80 p-4 flex flex-col justify-between hidden md:flex min-h-[calc(100vh-4rem)]">
@@ -54,18 +65,7 @@ export const Sidebar: React.FC = () => {
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === '/'}
-                className={({ isActive }) =>
-                  `flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                    isActive
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                      : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
-                  }`
-                }
-              >
+              <NavLink key={item.path} to={item.path} end={item.path === '/'} className={linkClass}>
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
               </NavLink>
@@ -73,36 +73,38 @@ export const Sidebar: React.FC = () => {
           })}
         </div>
 
+        {isAdmin && (
+          <div className="space-y-1 pt-2 border-t border-slate-800/80">
+            <p className="px-3 text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-2">
+              Administração
+            </p>
+            <NavLink to="/backoffice" className={linkClass}>
+              <Settings className="w-4 h-4 text-amber-400" />
+              <span>Backoffice</span>
+            </NavLink>
+          </div>
+        )}
+
         {isTeacherOrAdmin && (
           <div className="space-y-1 pt-2 border-t border-slate-800/80">
             <p className="px-3 text-[11px] font-bold text-indigo-400 uppercase tracking-wider mb-2">
               Gestão Docente
             </p>
-            <NavLink
-              to="/teacher/dashboard"
-              className={({ isActive }) =>
-                `flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                  isActive
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
-                }`
-              }
-            >
+            <NavLink to="/teacher/dashboard" className={linkClass}>
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Painel Docente & Integridade</span>
+              <span>Dashboard Docente</span>
             </NavLink>
-            <NavLink
-              to="/codewars-import"
-              className={({ isActive }) =>
-                `flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                  isActive
-                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
-                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
-                }`
-              }
-            >
+            <NavLink to="/teacher/challenges" className={linkClass}>
+              <Wrench className="w-4 h-4 text-indigo-400" />
+              <span>CRUD de Desafios</span>
+            </NavLink>
+            <NavLink to="/codewars-import" className={linkClass}>
               <DownloadCloud className="w-4 h-4 text-rose-400" />
               <span>Importar Codewars</span>
+            </NavLink>
+            <NavLink to="/codewars-import/bulk" className={linkClass}>
+              <Layers3 className="w-4 h-4 text-rose-300" />
+              <span>Codewars em Lote</span>
             </NavLink>
           </div>
         )}
@@ -113,14 +115,14 @@ export const Sidebar: React.FC = () => {
             <span>Prática + Academia</span>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Treino livre por dificuldade e atividades acadêmicas no mesmo ambiente.
+            Treino livre, gestão docente e materiais das turmas no mesmo ambiente.
           </p>
         </div>
       </div>
 
       <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-3 px-2 flex justify-between items-center">
-        <span>FateCode v1.1.0</span>
-        <span className="text-emerald-400 font-semibold font-mono">Treino Livre</span>
+        <span>FateCode v1.4.0</span>
+        <span className="text-emerald-400 font-semibold font-mono">Analytics</span>
       </div>
     </aside>
   );

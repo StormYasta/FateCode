@@ -4,10 +4,66 @@ import { authenticate } from '../middlewares/authenticate.js';
 import { ExecutionService } from '../services/execution.service.js';
 import { z } from 'zod';
 
+async function ensureRecentSession(userId: string, challengeId: string) {
+  const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+  const existing = await (prisma as any).developmentEvent.findFirst({
+    where: {
+      userId,
+      challengeId,
+      eventType: 'SESSION_STARTED',
+      timestamp: { gte: fourHoursAgo },
+    },
+    orderBy: { timestamp: 'desc' },
+  });
+
+  if (!existing) {
+    await (prisma as any).developmentEvent.create({
+      data: { userId, challengeId, eventType: 'SESSION_STARTED' },
+    });
+  }
+}
+
+async function resolveAssignmentId(userId: string, challengeId: string, requestedAssignmentId?: string | null) {
+  if (requestedAssignmentId) {
+    const assignment = await (prisma as any).assignment.findFirst({
+      where: {
+        id: requestedAssignmentId,
+        challengeId,
+        class: {
+          members: {
+            some: { userId, role: 'STUDENT' },
+          },
+        },
+      },
+      select: { id: true },
+    });
+    return assignment?.id || null;
+  }
+
+  const now = new Date();
+  const candidates = await (prisma as any).assignment.findMany({
+    where: {
+      challengeId,
+      startDate: { lte: now },
+      OR: [{ dueDate: null }, { dueDate: { gte: now } }],
+      class: {
+        members: {
+          some: { userId, role: 'STUDENT' },
+        },
+      },
+    },
+    select: { id: true },
+    take: 2,
+  });
+
+  return candidates.length === 1 ? candidates[0].id : null;
+}
+
 export async function executionRoutes(fastify: FastifyInstance) {
   // Execute Public Tests (Fast test runner in editor)
   fastify.post('/challenges/:id/execute', { preHandler: [authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string };
+    const user = (request as any).user;
     const schema = z.object({
       code: z.string().min(1, 'O código é obrigatório'),
       language: z.enum(['JAVASCRIPT', 'TYPESCRIPT', 'PYTHON', 'JAVA', 'C', 'CPP']).default('JAVASCRIPT'),
@@ -25,6 +81,8 @@ export async function executionRoutes(fastify: FastifyInstance) {
     if (!challenge) {
       return reply.status(404).send({ error: 'Not Found', message: 'Desafio não encontrado.' });
     }
+
+    await ensureRecentSession(user.id, challenge.id);
 
     const publicTests = (challenge.publicTests as any[]) || [];
     const executionResult = await ExecutionService.runJavaScript(parsed.data.code, publicTests);
@@ -57,6 +115,9 @@ export async function executionRoutes(fastify: FastifyInstance) {
     if (!challenge) {
       return reply.status(404).send({ error: 'Not Found', message: 'Desafio não encontrado.' });
     }
+
+    await ensureRecentSession(user.id, challenge.id);
+    const assignmentId = await resolveAssignmentId(user.id, challenge.id, parsed.data.assignmentId);
 
     const publicTests = (challenge.publicTests as any[]) || [];
     const hiddenTests = (challenge.hiddenTests as any[]) || [];
@@ -132,7 +193,6 @@ export async function executionRoutes(fastify: FastifyInstance) {
         if (diffDays === 0) {
           // Already active today, streak unchanged
         } else if (diffDays === 1) {
-          // Active consecutive day -> Increment streak
           const newCurrent = userStreak.currentStreak + 1;
           await (prisma as any).streak.update({
             where: { userId: user.id },
@@ -143,7 +203,6 @@ export async function executionRoutes(fastify: FastifyInstance) {
             },
           });
         } else {
-          // Streak broken -> reset to 1
           await (prisma as any).streak.update({
             where: { userId: user.id },
             data: {
@@ -161,7 +220,7 @@ export async function executionRoutes(fastify: FastifyInstance) {
       data: {
         userId: user.id,
         challengeId: challenge.id,
-        assignmentId: parsed.data.assignmentId || null,
+        assignmentId,
         code: parsed.data.code,
         language: parsed.data.language,
         status: execution.status,
@@ -172,7 +231,6 @@ export async function executionRoutes(fastify: FastifyInstance) {
       },
     });
 
-    // Fetch updated user profile
     const updatedProfile = await (prisma as any).profile.findUnique({
       where: { userId: user.id },
     });
@@ -189,6 +247,7 @@ export async function executionRoutes(fastify: FastifyInstance) {
       xpEarned,
       newTotalXP: updatedProfile?.totalXP || 0,
       currentStreak: updatedStreak?.currentStreak || 0,
+      assignmentId,
       stdout: execution.stdout,
       stderr: execution.stderr,
       submissionId: submission.id,
