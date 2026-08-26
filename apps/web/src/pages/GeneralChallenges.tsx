@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, SlidersHorizontal, Sparkles, Trophy } from 'lucide-react';
 import { api } from '../services/api';
@@ -30,32 +30,23 @@ const difficulties: { value: Difficulty; label: string; subtitle: string }[] = [
   { value: 'KYU_1', label: '1 kyu', subtitle: 'Expert' },
 ];
 
-const languages: { value: Language; label: string }[] = [
-  { value: 'JAVASCRIPT', label: 'JavaScript' },
-  { value: 'TYPESCRIPT', label: 'TypeScript' },
-  { value: 'PYTHON', label: 'Python' },
-  { value: 'JAVA', label: 'Java' },
-  { value: 'C', label: 'C' },
-  { value: 'CPP', label: 'C++' },
-];
+const languageNames: Record<Language, string> = {
+  JAVASCRIPT: 'JavaScript',
+  TYPESCRIPT: 'TypeScript',
+  PYTHON: 'Python',
+  JAVA: 'Java',
+  C: 'C',
+  CPP: 'C++',
+};
 
 const difficultyLabel = (difficulty: Difficulty) => difficulty.replace('KYU_', '') + ' kyu';
 
 export const GeneralChallenges: React.FC = () => {
-  const [language, setLanguage] = useState<Language>(() => {
-    const saved = localStorage.getItem('fatecode_language') as Language | null;
-    return saved && languages.some((item) => item.value === saved) ? saved : 'JAVASCRIPT';
-  });
   const [difficulty, setDifficulty] = useState<Difficulty | ''>('');
   const [search, setSearch] = useState('');
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    localStorage.setItem('fatecode_language', language);
-    localStorage.setItem('fatecode_environment', 'general');
-  }, [language]);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,7 +57,6 @@ export const GeneralChallenges: React.FC = () => {
       try {
         const response = await api.get('/challenges', {
           params: {
-            language,
             ...(difficulty ? { difficulty } : {}),
             ...(search.trim() ? { search: search.trim() } : {}),
           },
@@ -87,55 +77,31 @@ export const GeneralChallenges: React.FC = () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [language, difficulty, search]);
-
-  const selectedLanguageLabel = useMemo(
-    () => languages.find((item) => item.value === language)?.label || language,
-    [language]
-  );
+  }, [difficulty, search]);
 
   return (
     <div className="space-y-7">
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
-        <div>
-          <div className="inline-flex items-center gap-2 text-xs font-bold text-indigo-300 uppercase tracking-wider mb-2">
-            <Sparkles className="w-4 h-4" />
-            Ambiente Geral
-          </div>
-          <h1 className="text-3xl font-bold text-white">Desafios de Programação</h1>
-          <p className="text-slate-400 mt-2 max-w-2xl">
-            Escolha sua linguagem, filtre a dificuldade e avance de 8 kyu até 1 kyu resolvendo desafios reais.
-          </p>
+      <div>
+        <div className="inline-flex items-center gap-2 text-xs font-bold text-indigo-300 uppercase tracking-wider mb-2">
+          <Sparkles className="w-4 h-4" />
+          Treino Livre
         </div>
-
-        <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 px-4 py-3 min-w-[210px]">
-          <div className="text-[11px] uppercase tracking-wider text-indigo-300 font-bold">Linguagem atual</div>
-          <div className="text-white font-semibold mt-1">{selectedLanguageLabel}</div>
-        </div>
+        <h1 className="text-3xl font-bold text-white">Desafios de Programação</h1>
+        <p className="text-slate-400 mt-2 max-w-2xl">
+          Pratique no seu ritmo, escolha um nível de 8 kyu até 1 kyu e selecione a linguagem ao abrir o desafio.
+        </p>
       </div>
 
       <section className="rounded-2xl bg-[#0c1222] border border-slate-800 p-5 space-y-5">
-        <div className="grid lg:grid-cols-[1fr_220px] gap-4">
-          <label className="relative block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar desafios por nome ou descrição..."
-              className="w-full bg-slate-950/60 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500"
-            />
-          </label>
-
-          <select
-            value={language}
-            onChange={(event) => setLanguage(event.target.value as Language)}
-            className="bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500"
-          >
-            {languages.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
-            ))}
-          </select>
-        </div>
+        <label className="relative block">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Buscar desafios por nome ou descrição..."
+            className="w-full bg-slate-950/60 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500"
+          />
+        </label>
 
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
@@ -197,7 +163,7 @@ export const GeneralChallenges: React.FC = () => {
         <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/30 p-10 text-center">
           <h3 className="text-lg font-semibold text-white">Nenhum desafio encontrado</h3>
           <p className="text-sm text-slate-400 mt-2">
-            Tente outra linguagem, outro nível de dificuldade ou remova o termo de busca.
+            Tente outro nível de dificuldade ou remova o termo de busca.
           </p>
         </div>
       )}
@@ -239,8 +205,8 @@ export const GeneralChallenges: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between border-t border-slate-800 mt-5 pt-4 text-xs">
-              <span className="text-slate-500">{selectedLanguageLabel}</span>
-              <span className="font-semibold text-indigo-300 group-hover:translate-x-1 transition-transform">Resolver →</span>
+              <span className="text-slate-500">Base atual: {languageNames[challenge.language] || challenge.language}</span>
+              <span className="font-semibold text-indigo-300 group-hover:translate-x-1 transition-transform">Abrir desafio →</span>
             </div>
           </Link>
         ))}
