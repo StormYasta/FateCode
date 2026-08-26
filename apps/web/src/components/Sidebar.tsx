@@ -1,17 +1,18 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  LayoutDashboard, 
-  Map, 
-  ListChecks, 
-  GraduationCap, 
-  User, 
-  Building2, 
-  Trophy, 
-  ShieldCheck, 
+import {
+  LayoutDashboard,
+  Map,
+  ListChecks,
+  GraduationCap,
+  User,
+  Building2,
+  Trophy,
+  ShieldCheck,
   DownloadCloud,
-  Code2
+  Code2,
+  Dumbbell,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -20,8 +21,9 @@ export const Sidebar: React.FC = () => {
 
   const navItems = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { label: 'Trilhas de Estudo', path: '/learning-paths', icon: Map },
+    { label: 'Treino Livre', path: '/practice', icon: Dumbbell },
     { label: 'Atividades da Turma', path: '/assignments', icon: ListChecks },
+    { label: 'Trilhas de Estudo', path: '/learning-paths', icon: Map },
     { label: 'Rankings & Pódio', path: '/rankings', icon: Trophy },
     { label: 'Estrutura Acadêmica', path: '/academic', icon: Building2 },
     { label: 'Turmas & Alunos', path: '/classes', icon: GraduationCap },
@@ -31,7 +33,6 @@ export const Sidebar: React.FC = () => {
   return (
     <aside className="w-64 bg-[#0c1222] border-r border-slate-800/80 p-4 flex flex-col justify-between hidden md:flex min-h-[calc(100vh-4rem)]">
       <div className="space-y-6">
-        {/* Academic Context Card */}
         <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
           <div className="flex items-center space-x-2 text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1">
             <Building2 className="w-3.5 h-3.5" />
@@ -46,7 +47,6 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
 
-        {/* Navigation List */}
         <div className="space-y-1">
           <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
             Menu Principal
@@ -57,6 +57,7 @@ export const Sidebar: React.FC = () => {
               <NavLink
                 key={item.path}
                 to={item.path}
+                end={item.path === '/'}
                 className={({ isActive }) =>
                   `flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${
                     isActive
@@ -72,7 +73,6 @@ export const Sidebar: React.FC = () => {
           })}
         </div>
 
-        {/* Teacher / Admin Tools */}
         {isTeacherOrAdmin && (
           <div className="space-y-1 pt-2 border-t border-slate-800/80">
             <p className="px-3 text-[11px] font-bold text-indigo-400 uppercase tracking-wider mb-2">
@@ -107,22 +107,20 @@ export const Sidebar: React.FC = () => {
           </div>
         )}
 
-        {/* Phase preview notice */}
         <div className="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs text-indigo-300">
           <div className="flex items-center space-x-2 font-bold mb-1">
             <Code2 className="w-4 h-4 text-indigo-400" />
-            <span>FateCode MVP Completo</span>
+            <span>Prática + Academia</span>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Gamificação em 3 níveis, Comunidade, Integridade acadêmica e Dashboards especializados ativos.
+            Treino livre por dificuldade e atividades acadêmicas no mesmo ambiente.
           </p>
         </div>
       </div>
 
-      {/* Footer Info */}
       <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-3 px-2 flex justify-between items-center">
-        <span>FateCode v1.0.0</span>
-        <span className="text-emerald-400 font-semibold font-mono">MVP Final</span>
+        <span>FateCode v1.1.0</span>
+        <span className="text-emerald-400 font-semibold font-mono">Treino Livre</span>
       </div>
     </aside>
   );
