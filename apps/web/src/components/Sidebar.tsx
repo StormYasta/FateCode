@@ -91,6 +91,7 @@ export const Sidebar: React.FC = () => {
                     ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
                     : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
                 }`
+              }
             >
               <DownloadCloud className="w-4 h-4 text-rose-400" />
               <span>Importar Codewars</span>
