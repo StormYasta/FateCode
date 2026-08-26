@@ -8,6 +8,8 @@ import { z } from 'zod';
 export async function challengeRoutes(fastify: FastifyInstance) {
   // List Challenges (catalog)
   fastify.get('/', { preHandler: [authenticate] }, async (request, reply) => {
+    const requester = (request as any).user;
+    const isElevated = requester.role === 'ADMIN' || requester.role === 'PROFESSOR';
     const querySchema = z.object({
       topicId: z.string().optional(),
       difficulty: z.enum(['KYU_8', 'KYU_7', 'KYU_6', 'KYU_5', 'KYU_4', 'KYU_3', 'KYU_2', 'KYU_1']).optional(),
@@ -18,6 +20,11 @@ export async function challengeRoutes(fastify: FastifyInstance) {
 
     const parsed = querySchema.safeParse(request.query);
     const where: any = {};
+
+    // Bulk Codewars imports are drafts until a teacher adds real starter code/tests and removes this tag.
+    if (!isElevated) {
+      where.NOT = { tags: { has: 'codewars-draft' } };
+    }
 
     if (parsed.success) {
       const { topicId, difficulty, language, search, tag } = parsed.data;
@@ -83,7 +90,7 @@ export async function challengeRoutes(fastify: FastifyInstance) {
       },
     });
 
-    if (!challenge) {
+    if (!challenge || (!isElevated && challenge.tags?.includes('codewars-draft'))) {
       return reply.status(404).send({ error: 'Not Found', message: 'Desafio não encontrado.' });
     }
 
@@ -156,6 +163,8 @@ export async function challengeRoutes(fastify: FastifyInstance) {
           ...(parsed.data.slug && { slug: parsed.data.slug.toLowerCase() }),
           ...(parsed.data.description && { description: parsed.data.description }),
           ...(parsed.data.difficulty && { difficulty: parsed.data.difficulty }),
+          ...(parsed.data.source && { source: parsed.data.source }),
+          ...(parsed.data.externalId !== undefined && { externalId: parsed.data.externalId }),
           ...(parsed.data.language && { language: parsed.data.language }),
           ...(parsed.data.initialCode && { initialCode: parsed.data.initialCode }),
           ...(parsed.data.testCode !== undefined && { testCode: parsed.data.testCode }),
@@ -163,6 +172,7 @@ export async function challengeRoutes(fastify: FastifyInstance) {
           ...(parsed.data.hiddenTests !== undefined && { hiddenTests: parsed.data.hiddenTests }),
           ...(parsed.data.tags && { tags: parsed.data.tags }),
           ...(parsed.data.xpReward && { xpReward: parsed.data.xpReward }),
+          ...(parsed.data.isDaily !== undefined && { isDaily: parsed.data.isDaily }),
           ...(parsed.data.topicId !== undefined && { topicId: parsed.data.topicId }),
         },
       });
