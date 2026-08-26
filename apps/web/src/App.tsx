@@ -19,6 +19,7 @@ import { Rankings } from './pages/Rankings';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { TeacherChallenges } from './pages/TeacherChallenges';
 import { GeneralChallenges } from './pages/GeneralChallenges';
+import { Backoffice } from './pages/Backoffice';
 
 export const App: React.FC = () => {
   return (
@@ -43,6 +44,7 @@ export const App: React.FC = () => {
               <Route path="/codewars-import" element={<CodewarsImport />} />
               <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
               <Route path="/teacher/challenges" element={<TeacherChallenges />} />
+              <Route path="/backoffice" element={<Backoffice />} />
               <Route path="/challenges/:idOrSlug" element={<ChallengeSolve />} />
 
               <Route path="/general" element={<Navigate to="/practice" replace />} />
