@@ -27,6 +27,7 @@ import { executionRoutes } from './routes/execution.routes.js';
 import { gamificationRoutes } from './routes/gamification.routes.js';
 import { communityRoutes } from './routes/community.routes.js';
 import { integrityRoutes } from './routes/integrity.routes.js';
+import { adminRoutes } from './routes/admin.routes.js';
 
 export async function buildServer(): Promise<FastifyInstance> {
   const app = fastify({
@@ -41,7 +42,6 @@ export async function buildServer(): Promise<FastifyInstance> {
     } : false,
   });
 
-  // Security Plugins
   await app.register(cors, {
     origin: env.CORS_ORIGIN === '*' ? true : [env.CORS_ORIGIN, 'http://localhost:5173', 'http://127.0.0.1:5173'],
     credentials: true,
@@ -58,12 +58,10 @@ export async function buildServer(): Promise<FastifyInstance> {
     });
   }
 
-  // JWT Plugin
   await app.register(jwt, {
     secret: env.JWT_SECRET,
   });
 
-  // Academic material uploads
   const uploadRoot = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
   const uploadFiles = path.join(uploadRoot, 'files');
   await mkdir(uploadFiles, { recursive: true });
@@ -82,7 +80,6 @@ export async function buildServer(): Promise<FastifyInstance> {
     decorateReply: false,
   });
 
-  // Swagger Documentation
   await app.register(swagger, {
     openapi: {
       info: {
@@ -107,7 +104,6 @@ export async function buildServer(): Promise<FastifyInstance> {
     },
   });
 
-  // Global Error Handler
   app.setErrorHandler((error: FastifyError, request, reply) => {
     if (error.statusCode) {
       return reply.status(error.statusCode).send({
@@ -123,7 +119,6 @@ export async function buildServer(): Promise<FastifyInstance> {
     });
   });
 
-  // Register Route Modules
   await app.register(healthRoutes, { prefix: '/api' });
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(userRoutes, { prefix: '/api/users' });
@@ -137,6 +132,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(challengeRoutes, { prefix: '/api/challenges' });
   await app.register(assignmentRoutes, { prefix: '/api/assignments' });
   await app.register(codewarsRoutes, { prefix: '/api/codewars' });
+  await app.register(adminRoutes, { prefix: '/api/admin' });
   await app.register(executionRoutes, { prefix: '/api' });
   await app.register(gamificationRoutes, { prefix: '/api' });
   await app.register(communityRoutes, { prefix: '/api' });
