@@ -14,11 +14,13 @@ import {
   Code2,
   Dumbbell,
   Wrench,
+  Settings,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
   const isTeacherOrAdmin = user?.role === 'ADMIN' || user?.role === 'PROFESSOR';
+  const isAdmin = user?.role === 'ADMIN';
 
   const navItems = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -70,6 +72,18 @@ export const Sidebar: React.FC = () => {
           })}
         </div>
 
+        {isAdmin && (
+          <div className="space-y-1 pt-2 border-t border-slate-800/80">
+            <p className="px-3 text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-2">
+              Administração
+            </p>
+            <NavLink to="/backoffice" className={linkClass}>
+              <Settings className="w-4 h-4 text-amber-400" />
+              <span>Backoffice</span>
+            </NavLink>
+          </div>
+        )}
+
         {isTeacherOrAdmin && (
           <div className="space-y-1 pt-2 border-t border-slate-800/80">
             <p className="px-3 text-[11px] font-bold text-indigo-400 uppercase tracking-wider mb-2">
@@ -111,8 +125,8 @@ export const Sidebar: React.FC = () => {
       </div>
 
       <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-3 px-2 flex justify-between items-center">
-        <span>FateCode v1.2.0</span>
-        <span className="text-emerald-400 font-semibold font-mono">Docência</span>
+        <span>FateCode v1.3.0</span>
+        <span className="text-emerald-400 font-semibold font-mono">Backoffice</span>
       </div>
     </aside>
   );
