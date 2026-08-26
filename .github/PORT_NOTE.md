@@ -1,1 +1,0 @@
-PostgreSQL host port defaults to 5433 for local Docker development to avoid collisions with native PostgreSQL installations.
