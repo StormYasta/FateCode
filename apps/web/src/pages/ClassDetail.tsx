@@ -2,18 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  GraduationCap, 
-  Users, 
-  Trophy, 
-  Flame, 
-  Star, 
-  BookOpen, 
-  ArrowLeft, 
-  ShieldCheck, 
-  Award,
-  Calendar,
-  Building2
+import { ClassContentSection } from '../components/ClassContentSection';
+import {
+  Users,
+  Trophy,
+  Flame,
+  Star,
+  BookOpen,
+  ArrowLeft,
+  ShieldCheck,
+  Building2,
 } from 'lucide-react';
 
 export const ClassDetail: React.FC = () => {
@@ -52,10 +50,12 @@ export const ClassDetail: React.FC = () => {
   const students = (classData.members?.filter((m: any) => m.role === 'STUDENT') || []).sort(
     (a: any, b: any) => (b.user.profile?.totalXP || 0) - (a.user.profile?.totalXP || 0)
   );
+  const canManageClass = currentUser?.role === 'ADMIN' || classData.members?.some(
+    (member: any) => member.user.id === currentUser?.id && (member.role === 'PROFESSOR' || member.role === 'ASSISTANT')
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Back button */}
+    <div className="space-y-8">
       <Link
         to="/classes"
         className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-400 hover:text-indigo-400 transition-colors"
@@ -64,7 +64,6 @@ export const ClassDetail: React.FC = () => {
         <span>Voltar para Turmas</span>
       </Link>
 
-      {/* Class Header Card */}
       <div className="p-6 md:p-8 rounded-2xl bg-gradient-to-r from-[#121a2d] to-[#0d1322] border border-slate-800 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -97,9 +96,9 @@ export const ClassDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid: Professors and Students Leaderboard */}
+      <ClassContentSection classId={classData.id} canManage={Boolean(canManageClass)} />
+
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left Column: Professors */}
         <div className="space-y-4">
           <div className="p-5 rounded-2xl bg-[#0f1628]/80 border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2">
@@ -133,7 +132,6 @@ export const ClassDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column (2 cols): Students Leaderboard within Class */}
         <div className="lg:col-span-2 space-y-4">
           <div className="p-5 rounded-2xl bg-[#0f1628]/80 border border-slate-800 space-y-4">
             <div className="flex items-center justify-between">
@@ -163,7 +161,6 @@ export const ClassDetail: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center space-x-3.5">
-                        {/* Position badge */}
                         <div
                           className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono font-bold text-xs ${
                             index === 0
@@ -178,7 +175,6 @@ export const ClassDetail: React.FC = () => {
                           {index + 1}
                         </div>
 
-                        {/* Avatar & Name */}
                         <div>
                           <div className="flex items-center space-x-2">
                             <span className="font-bold text-sm text-white">{st.user.name}</span>
@@ -194,7 +190,6 @@ export const ClassDetail: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Stats: Streak & XP */}
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-1 text-xs text-amber-400 font-mono font-semibold">
                           <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
