@@ -3,8 +3,12 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import path from 'node:path';
+import { mkdir } from 'node:fs/promises';
 import { env } from './config/env.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
@@ -12,6 +16,7 @@ import { userRoutes } from './routes/user.routes.js';
 import { facultyRoutes } from './routes/faculty.routes.js';
 import { courseRoutes } from './routes/course.routes.js';
 import { classRoutes } from './routes/class.routes.js';
+import { classContentRoutes } from './routes/classContent.routes.js';
 import { learningPathRoutes } from './routes/learningPath.routes.js';
 import { moduleRoutes } from './routes/module.routes.js';
 import { topicRoutes } from './routes/topic.routes.js';
@@ -56,6 +61,25 @@ export async function buildServer(): Promise<FastifyInstance> {
   // JWT Plugin
   await app.register(jwt, {
     secret: env.JWT_SECRET,
+  });
+
+  // Academic material uploads
+  const uploadRoot = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
+  const uploadFiles = path.join(uploadRoot, 'files');
+  await mkdir(uploadFiles, { recursive: true });
+
+  await app.register(multipart, {
+    limits: {
+      fileSize: 20 * 1024 * 1024,
+      files: 1,
+      fields: 8,
+    },
+  });
+
+  await app.register(fastifyStatic, {
+    root: uploadFiles,
+    prefix: '/uploads/',
+    decorateReply: false,
   });
 
   // Swagger Documentation
@@ -106,6 +130,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(facultyRoutes, { prefix: '/api/faculties' });
   await app.register(courseRoutes, { prefix: '/api/courses' });
   await app.register(classRoutes, { prefix: '/api/classes' });
+  await app.register(classContentRoutes, { prefix: '/api/classes' });
   await app.register(learningPathRoutes, { prefix: '/api/learning-paths' });
   await app.register(moduleRoutes, { prefix: '/api/modules' });
   await app.register(topicRoutes, { prefix: '/api/topics' });
