@@ -15,6 +15,7 @@ import {
   Dumbbell,
   Wrench,
   Settings,
+  Layers3,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -97,18 +98,13 @@ export const Sidebar: React.FC = () => {
               <Wrench className="w-4 h-4 text-indigo-400" />
               <span>CRUD de Desafios</span>
             </NavLink>
-            <NavLink
-              to="/codewars-import"
-              className={({ isActive }) =>
-                `flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                  isActive
-                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
-                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
-                }`
-              }
-            >
+            <NavLink to="/codewars-import" className={linkClass}>
               <DownloadCloud className="w-4 h-4 text-rose-400" />
               <span>Importar Codewars</span>
+            </NavLink>
+            <NavLink to="/codewars-import/bulk" className={linkClass}>
+              <Layers3 className="w-4 h-4 text-rose-300" />
+              <span>Codewars em Lote</span>
             </NavLink>
           </div>
         )}
