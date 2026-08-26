@@ -28,6 +28,7 @@ import { gamificationRoutes } from './routes/gamification.routes.js';
 import { communityRoutes } from './routes/community.routes.js';
 import { integrityRoutes } from './routes/integrity.routes.js';
 import { adminRoutes } from './routes/admin.routes.js';
+import { teacherAnalyticsRoutes } from './routes/teacherAnalytics.routes.js';
 
 export async function buildServer(): Promise<FastifyInstance> {
   const app = fastify({
@@ -133,6 +134,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(assignmentRoutes, { prefix: '/api/assignments' });
   await app.register(codewarsRoutes, { prefix: '/api/codewars' });
   await app.register(adminRoutes, { prefix: '/api/admin' });
+  await app.register(teacherAnalyticsRoutes, { prefix: '/api/teacher' });
   await app.register(executionRoutes, { prefix: '/api' });
   await app.register(gamificationRoutes, { prefix: '/api' });
   await app.register(communityRoutes, { prefix: '/api' });
