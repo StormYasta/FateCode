@@ -1,9 +1,25 @@
-import axios from 'axios';
 import { redis } from '../plugins/redis.js';
 import { prisma } from '../plugins/prisma.js';
 import { CodewarsChallengeDTO, CodewarsUserDTO, ImportCodewarsChallengeInput } from '@fatecode/shared';
 
 const CODEWARS_API_BASE = 'https://www.codewars.com/api/v1';
+const CODEWARS_REQUEST_TIMEOUT_MS = 10000;
+
+async function codewarsGet<T>(url: string): Promise<T> {
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(CODEWARS_REQUEST_TIMEOUT_MS),
+    headers: {
+      'User-Agent': 'FateCode-Academic-Platform/1.0',
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Codewars API request failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json() as Promise<T>;
+}
 
 // Difficulty mapping from Codewars rank.id (negative numbers: -8 = 8 kyu, -1 = 1 kyu)
 export function mapRankToDifficulty(rankId?: number): { difficulty: any; defaultXp: number } {
@@ -41,14 +57,7 @@ export class CodewarsService {
 
     // 2. Fetch from public Codewars API
     const url = `${CODEWARS_API_BASE}/code-challenges/${encodeURIComponent(idOrSlug)}`;
-    const response = await axios.get<CodewarsChallengeDTO>(url, {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'FateCode-Academic-Platform/1.0',
-      },
-    });
-
-    const data = response.data;
+    const data = await codewarsGet<CodewarsChallengeDTO>(url);
 
     // 3. Store in Redis cache (24 hours = 86400s)
     try {
@@ -80,14 +89,7 @@ export class CodewarsService {
     }
 
     const url = `${CODEWARS_API_BASE}/users/${encodeURIComponent(username)}`;
-    const response = await axios.get<CodewarsUserDTO>(url, {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'FateCode-Academic-Platform/1.0',
-      },
-    });
-
-    const data = response.data;
+    const data = await codewarsGet<CodewarsUserDTO>(url);
 
     try {
       if (redis.status === 'ready') {
@@ -105,13 +107,7 @@ export class CodewarsService {
    */
   static async getUserCompletedChallenges(username: string, page = 0): Promise<any> {
     const url = `${CODEWARS_API_BASE}/users/${encodeURIComponent(username)}/code-challenges/completed?page=${page}`;
-    const response = await axios.get(url, {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'FateCode-Academic-Platform/1.0',
-      },
-    });
-    return response.data;
+    return codewarsGet<any>(url);
   }
 
   /**
