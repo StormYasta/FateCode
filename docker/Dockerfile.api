@@ -2,7 +2,6 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy root workspace configs
 COPY package.json tsconfig.base.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/config/package.json ./packages/config/
@@ -11,11 +10,9 @@ COPY prisma ./prisma/
 
 RUN npm install
 
-# Copy source files
 COPY packages ./packages/
 COPY apps/api ./apps/api/
 
-# Generate Prisma Client & Build
 RUN npx prisma generate --schema=./prisma/schema.prisma
 RUN npm run build --workspace=@fatecode/shared
 RUN npm run build --workspace=@fatecode/api
@@ -23,7 +20,6 @@ RUN npm run build --workspace=@fatecode/api
 FROM node:20-alpine AS runner
 
 WORKDIR /app
-
 ENV NODE_ENV=production
 
 # MVP only: Python is executed with timeout/restricted built-ins.
@@ -40,5 +36,4 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 EXPOSE 3001
-
 CMD ["node", "apps/api/dist/src/index.js"]
