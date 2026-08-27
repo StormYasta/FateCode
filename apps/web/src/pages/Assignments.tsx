@@ -96,10 +96,9 @@ export const Assignments: React.FC = () => {
           {visible.map((assignment) => {
             const isProgramming = Boolean(assignment.challenge);
             const content = assignment.challenge || assignment.academicExercise;
-            const accent = isProgramming ? 'indigo' : 'emerald';
             const href = isProgramming
               ? `/challenges/${content.slug || content.id}?assignmentId=${assignment.id}`
-              : `/academic-exercises/${content.slug || content.id}?assignmentId=${assignment.id}`;
+              : `/academic-exercises/${content.slug || content.id}?assignment=${assignment.id}`;
 
             return (
               <div
