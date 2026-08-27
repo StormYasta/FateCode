@@ -26,8 +26,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Python is intentionally installed only in the API runtime image for the MVP runner.
-# Production hardening should move arbitrary code execution to an isolated worker/sandbox.
+# MVP only: Python is executed with timeout/restricted built-ins.
+# Before production, move arbitrary student code execution to an isolated worker/sandbox.
 RUN apk add --no-cache python3
 
 COPY package.json ./
