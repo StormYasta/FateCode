@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
 import {
   ArrowRight,
-  Calculator,
+  Binary,
   Clock,
   Code2,
   GraduationCap,
@@ -11,16 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-type ModuleTab = 'PROGRAMMING' | 'SUBJECTS';
-
-const subjectLabels: Record<string, string> = {
-  DISCRETE_MATHEMATICS: 'Matemática Discreta',
-  PROGRAMMING_LOGIC: 'Lógica de Programação',
-  CALCULUS: 'Cálculo',
-  STATISTICS: 'Estatística',
-  OPERATIONS_RESEARCH: 'Pesquisa Operacional',
-  OTHER: 'Outra disciplina',
-};
+type ModuleTab = 'PROGRAMMING' | 'DISCRETE_MATH';
 
 export const Assignments: React.FC = () => {
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -42,13 +33,15 @@ export const Assignments: React.FC = () => {
   }, []);
 
   const programming = useMemo(() => assignments.filter((item) => Boolean(item.challenge)), [assignments]);
-  const subjects = useMemo(() => assignments.filter((item) => Boolean(item.academicExercise)), [assignments]);
-  const visible = activeTab === 'PROGRAMMING' ? programming : subjects;
+  const discreteMath = useMemo(
+    () => assignments.filter((item) => item.academicExercise?.subject === 'DISCRETE_MATHEMATICS'),
+    [assignments]
+  );
+  const visible = activeTab === 'PROGRAMMING' ? programming : discreteMath;
 
   const formatDueDate = (dateString?: string) => {
     if (!dateString) return 'Sem prazo definido';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return new Date(dateString).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   return (
@@ -60,7 +53,7 @@ export const Assignments: React.FC = () => {
             <span>Atividades da Turma</span>
           </h1>
           <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Programação e disciplinas ficam separadas, mesmo quando são atribuídas pela mesma turma.
+            Programação permanece como fluxo principal; Matemática Discreta aparece em uma seção complementar própria.
           </p>
         </div>
         <span className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono">
@@ -78,10 +71,10 @@ export const Assignments: React.FC = () => {
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('SUBJECTS')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${activeTab === 'SUBJECTS' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-300'}`}
+          onClick={() => setActiveTab('DISCRETE_MATH')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${activeTab === 'DISCRETE_MATH' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-300'}`}
         >
-          <Calculator className="w-4 h-4" /> Disciplinas <span className="opacity-70">{subjects.length}</span>
+          <Binary className="w-4 h-4" /> Matemática Discreta <span className="opacity-70">{discreteMath.length}</span>
         </button>
       </div>
 
@@ -122,14 +115,12 @@ export const Assignments: React.FC = () => {
                   <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 mb-5 flex items-center justify-between gap-3">
                     <div className="flex items-center space-x-3 min-w-0">
                       <div className={`p-2 rounded-lg ${isProgramming ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
-                        {isProgramming ? <Code2 className="w-4 h-4" /> : <Calculator className="w-4 h-4" />}
+                        {isProgramming ? <Code2 className="w-4 h-4" /> : <Binary className="w-4 h-4" />}
                       </div>
                       <div className="min-w-0">
                         <div className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate">{content.title}</div>
                         <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          {isProgramming
-                            ? `Programação • ${content.language || 'JavaScript'}`
-                            : `Disciplinas • ${subjectLabels[content.subject] || content.subject}`}
+                          {isProgramming ? `Programação • ${content.language || 'JavaScript'}` : 'Matemática Discreta • MMD-001'}
                         </div>
                       </div>
                     </div>
@@ -150,7 +141,7 @@ export const Assignments: React.FC = () => {
                     to={href}
                     className={`px-4 py-2 rounded-xl text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg transition-all ${isProgramming ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'}`}
                   >
-                    <span>{isProgramming ? 'Resolver no Editor' : 'Responder questão'}</span>
+                    <span>{isProgramming ? 'Resolver no Editor' : 'Responder exercício'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
