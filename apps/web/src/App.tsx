@@ -39,7 +39,8 @@ export const App: React.FC = () => {
               <Route path="/" element={<Dashboard />} />
               <Route path="/practice" element={<PracticeHub />} />
               <Route path="/practice/programming" element={<GeneralChallenges />} />
-              <Route path="/practice/subjects" element={<AcademicExercises />} />
+              <Route path="/practice/discrete-math" element={<AcademicExercises />} />
+              <Route path="/practice/subjects" element={<Navigate to="/practice/discrete-math" replace />} />
               <Route path="/learning-paths" element={<LearningPaths />} />
               <Route path="/learning-paths/:slug" element={<LearningPathDetail />} />
               <Route path="/assignments" element={<Assignments />} />
@@ -52,7 +53,8 @@ export const App: React.FC = () => {
               <Route path="/codewars-import/bulk" element={<CodewarsBulkImport />} />
               <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
               <Route path="/teacher/challenges" element={<TeacherChallenges />} />
-              <Route path="/teacher/academic-exercises" element={<TeacherAcademicExercises />} />
+              <Route path="/teacher/discrete-math" element={<TeacherAcademicExercises />} />
+              <Route path="/teacher/academic-exercises" element={<Navigate to="/teacher/discrete-math" replace />} />
               <Route path="/backoffice" element={<Backoffice />} />
               <Route path="/challenges/:idOrSlug" element={<ChallengeSolve />} />
               <Route path="/academic-exercises/:idOrSlug" element={<AcademicExerciseSolve />} />
