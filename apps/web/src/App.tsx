@@ -18,8 +18,7 @@ import { CodewarsBulkImport } from './pages/CodewarsBulkImport';
 import { ChallengeSolve } from './pages/ChallengeSolve';
 import { Rankings } from './pages/Rankings';
 import { TeacherDashboard } from './pages/TeacherDashboard';
-import { TeacherChallenges } from './pages/TeacherChallenges';
-import { TeacherAcademicExercises } from './pages/TeacherAcademicExercises';
+import { TeacherExercises } from './pages/TeacherExercises';
 import { GeneralChallenges } from './pages/GeneralChallenges';
 import { PracticeHub } from './pages/PracticeHub';
 import { AcademicExercises } from './pages/AcademicExercises';
@@ -52,9 +51,10 @@ export const App: React.FC = () => {
               <Route path="/codewars-import" element={<CodewarsImport />} />
               <Route path="/codewars-import/bulk" element={<CodewarsBulkImport />} />
               <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-              <Route path="/teacher/challenges" element={<TeacherChallenges />} />
-              <Route path="/teacher/discrete-math" element={<TeacherAcademicExercises />} />
-              <Route path="/teacher/academic-exercises" element={<Navigate to="/teacher/discrete-math" replace />} />
+              <Route path="/teacher/exercises" element={<TeacherExercises />} />
+              <Route path="/teacher/challenges" element={<Navigate to="/teacher/exercises?type=programming" replace />} />
+              <Route path="/teacher/discrete-math" element={<Navigate to="/teacher/exercises?type=discrete-math" replace />} />
+              <Route path="/teacher/academic-exercises" element={<Navigate to="/teacher/exercises?type=discrete-math" replace />} />
               <Route path="/backoffice" element={<Backoffice />} />
               <Route path="/challenges/:idOrSlug" element={<ChallengeSolve />} />
               <Route path="/academic-exercises/:idOrSlug" element={<AcademicExerciseSolve />} />
