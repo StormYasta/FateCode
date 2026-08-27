@@ -6,28 +6,25 @@ import { createAssignmentSchema, updateAssignmentSchema } from '@fatecode/shared
 import { z } from 'zod';
 
 export async function assignmentRoutes(fastify: FastifyInstance) {
+  // List Assignments
   fastify.get('/', { preHandler: [authenticate] }, async (request, reply) => {
     const querySchema = z.object({
       classId: z.string().optional(),
-      module: z.enum(['PROGRAMMING', 'SUBJECTS']).optional(),
     });
 
     const parsed = querySchema.safeParse(request.query);
-    if (!parsed.success) {
-      return reply.status(400).send({ error: 'Validation Error', details: parsed.error.errors });
-    }
-
     const user = (request as any).user;
     const where: any = {};
 
-    if (parsed.data.classId) {
+    if (parsed.success && parsed.data.classId) {
       where.classId = parsed.data.classId;
     } else if (user.role === 'STUDENT') {
-      where.class = { members: { some: { userId: user.id } } };
+      where.class = {
+        members: {
+          some: { userId: user.id },
+        },
+      };
     }
-
-    if (parsed.data.module === 'PROGRAMMING') where.challengeId = { not: null };
-    if (parsed.data.module === 'SUBJECTS') where.academicExerciseId = { not: null };
 
     const assignments = await (prisma as any).assignment.findMany({
       where,
@@ -46,20 +43,8 @@ export async function assignmentRoutes(fastify: FastifyInstance) {
             xpReward: true,
           },
         },
-        academicExercise: {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            subject: true,
-            exerciseType: true,
-            difficulty: true,
-            tags: true,
-            xpReward: true,
-          },
-        },
         _count: {
-          select: { submissions: true, academicSubmissions: true },
+          select: { submissions: true },
         },
       },
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
@@ -68,13 +53,18 @@ export async function assignmentRoutes(fastify: FastifyInstance) {
     return reply.send({ data: assignments });
   });
 
+  // Get Assignment by ID
   fastify.get('/:id', { preHandler: [authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
     const assignment = await (prisma as any).assignment.findUnique({
       where: { id },
       include: {
-        class: { include: { course: true } },
+        class: {
+          include: {
+            course: true,
+          },
+        },
         challenge: {
           select: {
             id: true,
@@ -89,20 +79,6 @@ export async function assignmentRoutes(fastify: FastifyInstance) {
             xpReward: true,
           },
         },
-        academicExercise: {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            statement: true,
-            subject: true,
-            exerciseType: true,
-            difficulty: true,
-            options: true,
-            tags: true,
-            xpReward: true,
-          },
-        },
       },
     });
 
@@ -113,6 +89,7 @@ export async function assignmentRoutes(fastify: FastifyInstance) {
     return reply.send({ data: assignment });
   });
 
+  // Create Assignment (Admin or Professor)
   fastify.post(
     '/',
     { preHandler: [authenticate, requireRole(['ADMIN', 'PROFESSOR'])] },
@@ -122,31 +99,27 @@ export async function assignmentRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Validation Error', details: parsed.error.errors });
       }
 
-      const classExists = await (prisma as any).class.findUnique({ where: { id: parsed.data.classId } });
+      const classExists = await (prisma as any).class.findUnique({
+        where: { id: parsed.data.classId },
+      });
+
       if (!classExists) {
         return reply.status(404).send({ error: 'Not Found', message: 'Turma não encontrada.' });
       }
 
-      if (parsed.data.challengeId) {
-        const challenge = await (prisma as any).challenge.findUnique({ where: { id: parsed.data.challengeId } });
-        if (!challenge) {
-          return reply.status(404).send({ error: 'Not Found', message: 'Desafio de programação não encontrado.' });
-        }
-      }
+      const challengeExists = await (prisma as any).challenge.findUnique({
+        where: { id: parsed.data.challengeId },
+      });
 
-      if (parsed.data.academicExerciseId) {
-        const exercise = await (prisma as any).academicExercise.findUnique({ where: { id: parsed.data.academicExerciseId } });
-        if (!exercise) {
-          return reply.status(404).send({ error: 'Not Found', message: 'Exercício de disciplina não encontrado.' });
-        }
+      if (!challengeExists) {
+        return reply.status(404).send({ error: 'Not Found', message: 'Desafio não encontrado.' });
       }
 
       const assignment = await (prisma as any).assignment.create({
         data: {
           title: parsed.data.title,
           classId: parsed.data.classId,
-          challengeId: parsed.data.challengeId || null,
-          academicExerciseId: parsed.data.academicExerciseId || null,
+          challengeId: parsed.data.challengeId,
           startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : new Date(),
           dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
           isOptional: parsed.data.isOptional,
@@ -154,7 +127,6 @@ export async function assignmentRoutes(fastify: FastifyInstance) {
         include: {
           class: true,
           challenge: true,
-          academicExercise: true,
         },
       });
 
@@ -162,6 +134,7 @@ export async function assignmentRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // Update Assignment (Admin or Professor)
   fastify.put(
     '/:id',
     { preHandler: [authenticate, requireRole(['ADMIN', 'PROFESSOR'])] },
@@ -188,12 +161,17 @@ export async function assignmentRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // Delete Assignment (Admin or Professor)
   fastify.delete(
     '/:id',
     { preHandler: [authenticate, requireRole(['ADMIN', 'PROFESSOR'])] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      await (prisma as any).assignment.delete({ where: { id } });
+
+      await (prisma as any).assignment.delete({
+        where: { id },
+      });
+
       return reply.send({ message: 'Atividade removida com sucesso.' });
     }
   );
