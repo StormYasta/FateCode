@@ -16,6 +16,7 @@ import {
   Wrench,
   Settings,
   Layers3,
+  Calculator,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -59,9 +60,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         <div className="space-y-1">
-          <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-            Menu Principal
-          </p>
+          <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Menu Principal</p>
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -75,9 +74,7 @@ export const Sidebar: React.FC = () => {
 
         {isAdmin && (
           <div className="space-y-1 pt-2 border-t border-slate-800/80">
-            <p className="px-3 text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-2">
-              Administração
-            </p>
+            <p className="px-3 text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-2">Administração</p>
             <NavLink to="/backoffice" className={linkClass}>
               <Settings className="w-4 h-4 text-amber-400" />
               <span>Backoffice</span>
@@ -87,16 +84,18 @@ export const Sidebar: React.FC = () => {
 
         {isTeacherOrAdmin && (
           <div className="space-y-1 pt-2 border-t border-slate-800/80">
-            <p className="px-3 text-[11px] font-bold text-indigo-400 uppercase tracking-wider mb-2">
-              Gestão Docente
-            </p>
+            <p className="px-3 text-[11px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Gestão Docente</p>
             <NavLink to="/teacher/dashboard" className={linkClass}>
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>Dashboard Docente</span>
             </NavLink>
             <NavLink to="/teacher/challenges" className={linkClass}>
               <Wrench className="w-4 h-4 text-indigo-400" />
-              <span>CRUD de Desafios</span>
+              <span>Desafios de Programação</span>
+            </NavLink>
+            <NavLink to="/teacher/academic-exercises" className={linkClass}>
+              <Calculator className="w-4 h-4 text-emerald-400" />
+              <span>Exercícios de Disciplinas</span>
             </NavLink>
             <NavLink to="/codewars-import" className={linkClass}>
               <DownloadCloud className="w-4 h-4 text-rose-400" />
@@ -112,17 +111,17 @@ export const Sidebar: React.FC = () => {
         <div className="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs text-indigo-300">
           <div className="flex items-center space-x-2 font-bold mb-1">
             <Code2 className="w-4 h-4 text-indigo-400" />
-            <span>Prática + Academia</span>
+            <span>Programação + Disciplinas</span>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Treino livre, gestão docente e materiais das turmas no mesmo ambiente.
+            Dois módulos de exercícios no mesmo ecossistema, sem misturar correção ou experiência de resolução.
           </p>
         </div>
       </div>
 
       <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-3 px-2 flex justify-between items-center">
-        <span>FateCode v1.4.0</span>
-        <span className="text-emerald-400 font-semibold font-mono">Analytics</span>
+        <span>FateCode v1.5.0</span>
+        <span className="text-emerald-400 font-semibold font-mono">Disciplinas</span>
       </div>
     </aside>
   );
