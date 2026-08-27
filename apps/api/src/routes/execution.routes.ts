@@ -85,7 +85,7 @@ export async function executionRoutes(fastify: FastifyInstance) {
     await ensureRecentSession(user.id, challenge.id);
 
     const publicTests = (challenge.publicTests as any[]) || [];
-    const executionResult = await ExecutionService.runJavaScript(parsed.data.code, publicTests);
+    const executionResult = await ExecutionService.run(parsed.data.code, publicTests, parsed.data.language);
 
     return reply.send({
       data: executionResult,
@@ -123,13 +123,11 @@ export async function executionRoutes(fastify: FastifyInstance) {
     const hiddenTests = (challenge.hiddenTests as any[]) || [];
     const allTests = [...publicTests, ...hiddenTests];
 
-    // Run execution against all test cases
-    const execution = await ExecutionService.runJavaScript(parsed.data.code, allTests);
+    const execution = await ExecutionService.run(parsed.data.code, allTests, parsed.data.language);
 
     const isAccepted = execution.success;
     let xpEarned = 0;
 
-    // Check if user has already received XP for this challenge
     const previousAccepted = await (prisma as any).submission.findFirst({
       where: {
         userId: user.id,
@@ -138,11 +136,9 @@ export async function executionRoutes(fastify: FastifyInstance) {
       },
     });
 
-    // If accepted and not previously solved, grant XP & update streak
     if (isAccepted && !previousAccepted) {
       xpEarned = challenge.xpReward;
 
-      // 1. Create XP Transaction
       await (prisma as any).xPTransaction.create({
         data: {
           userId: user.id,
@@ -152,7 +148,6 @@ export async function executionRoutes(fastify: FastifyInstance) {
         },
       });
 
-      // 2. Increment Profile totalXP
       await (prisma as any).profile.upsert({
         where: { userId: user.id },
         create: {
@@ -166,7 +161,6 @@ export async function executionRoutes(fastify: FastifyInstance) {
         },
       });
 
-      // 3. Update Streak
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -190,9 +184,7 @@ export async function executionRoutes(fastify: FastifyInstance) {
         const diffTime = lastDate ? today.getTime() - lastDate.getTime() : null;
         const diffDays = diffTime !== null ? Math.round(diffTime / (1000 * 3600 * 24)) : null;
 
-        if (diffDays === 0) {
-          // Already active today, streak unchanged
-        } else if (diffDays === 1) {
+        if (diffDays === 1) {
           const newCurrent = userStreak.currentStreak + 1;
           await (prisma as any).streak.update({
             where: { userId: user.id },
@@ -202,7 +194,7 @@ export async function executionRoutes(fastify: FastifyInstance) {
               lastActivityDate: today,
             },
           });
-        } else {
+        } else if (diffDays !== 0) {
           await (prisma as any).streak.update({
             where: { userId: user.id },
             data: {
@@ -215,7 +207,6 @@ export async function executionRoutes(fastify: FastifyInstance) {
       }
     }
 
-    // Register Submission
     const submission = await (prisma as any).submission.create({
       data: {
         userId: user.id,
@@ -244,6 +235,8 @@ export async function executionRoutes(fastify: FastifyInstance) {
       passedTests: execution.passedTests,
       totalTests: execution.totalTests,
       executionTimeMs: execution.executionTimeMs,
+      testResults: execution.testResults.slice(0, publicTests.length),
+      hiddenTestsCount: hiddenTests.length,
       xpEarned,
       newTotalXP: updatedProfile?.totalXP || 0,
       currentStreak: updatedStreak?.currentStreak || 0,
@@ -255,7 +248,9 @@ export async function executionRoutes(fastify: FastifyInstance) {
         ? (previousAccepted
             ? '✓ Desafio concluído com sucesso! (XP já concedido anteriormente)'
             : `🎉 DESAFIO CONCLUÍDO! +${xpEarned} XP`)
-        : 'Alguns testes falharam. Revise sua lógica e tente novamente.',
+        : execution.status === 'COMPILATION_ERROR' || execution.status === 'RUNTIME_ERROR'
+          ? execution.stderr || 'Não foi possível executar a solução.'
+          : 'Alguns testes falharam. Revise sua lógica e tente novamente.',
     });
   });
 
