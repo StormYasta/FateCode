@@ -51,7 +51,7 @@ export const ClassAssignmentsSection: React.FC<{ classId: string }> = ({ classId
             const content = programmingGroup ? assignment.challenge : assignment.academicExercise;
             const href = programmingGroup
               ? `/challenges/${content.slug || content.id}?assignmentId=${assignment.id}`
-              : `/academic-exercises/${content.slug || content.id}?assignmentId=${assignment.id}`;
+              : `/academic-exercises/${content.slug || content.id}?assignment=${assignment.id}`;
             return (
               <div key={assignment.id} className="p-4 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40">
                 <div className="min-w-0">
