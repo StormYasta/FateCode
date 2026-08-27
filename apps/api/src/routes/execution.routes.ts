@@ -60,7 +60,6 @@ async function resolveAssignmentId(userId: string, challengeId: string, requeste
 }
 
 export async function executionRoutes(fastify: FastifyInstance) {
-  // Execute Public Tests (Fast test runner in editor)
   fastify.post('/challenges/:id/execute', { preHandler: [authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const user = (request as any).user;
@@ -87,12 +86,9 @@ export async function executionRoutes(fastify: FastifyInstance) {
     const publicTests = (challenge.publicTests as any[]) || [];
     const executionResult = await ExecutionService.run(parsed.data.code, publicTests, parsed.data.language);
 
-    return reply.send({
-      data: executionResult,
-    });
+    return reply.send({ data: executionResult });
   });
 
-  // Submit Solution (Full evaluation with hidden tests + Gamification XP & Streak)
   fastify.post('/challenges/:id/submit', { preHandler: [authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const user = (request as any).user;
@@ -122,7 +118,6 @@ export async function executionRoutes(fastify: FastifyInstance) {
     const publicTests = (challenge.publicTests as any[]) || [];
     const hiddenTests = (challenge.hiddenTests as any[]) || [];
     const allTests = [...publicTests, ...hiddenTests];
-
     const execution = await ExecutionService.run(parsed.data.code, allTests, parsed.data.language);
 
     const isAccepted = execution.success;
@@ -150,37 +145,21 @@ export async function executionRoutes(fastify: FastifyInstance) {
 
       await (prisma as any).profile.upsert({
         where: { userId: user.id },
-        create: {
-          userId: user.id,
-          totalXP: xpEarned,
-        },
-        update: {
-          totalXP: {
-            increment: xpEarned,
-          },
-        },
+        create: { userId: user.id, totalXP: xpEarned },
+        update: { totalXP: { increment: xpEarned } },
       });
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
-      const userStreak = await (prisma as any).streak.findUnique({
-        where: { userId: user.id },
-      });
+      const userStreak = await (prisma as any).streak.findUnique({ where: { userId: user.id } });
 
       if (!userStreak) {
         await (prisma as any).streak.create({
-          data: {
-            userId: user.id,
-            currentStreak: 1,
-            maxStreak: 1,
-            lastActivityDate: today,
-          },
+          data: { userId: user.id, currentStreak: 1, maxStreak: 1, lastActivityDate: today },
         });
       } else {
         const lastDate = userStreak.lastActivityDate ? new Date(userStreak.lastActivityDate) : null;
         if (lastDate) lastDate.setHours(0, 0, 0, 0);
-
         const diffTime = lastDate ? today.getTime() - lastDate.getTime() : null;
         const diffDays = diffTime !== null ? Math.round(diffTime / (1000 * 3600 * 24)) : null;
 
@@ -197,11 +176,7 @@ export async function executionRoutes(fastify: FastifyInstance) {
         } else if (diffDays !== 0) {
           await (prisma as any).streak.update({
             where: { userId: user.id },
-            data: {
-              currentStreak: 1,
-              maxStreak: Math.max(1, userStreak.maxStreak),
-              lastActivityDate: today,
-            },
+            data: { currentStreak: 1, maxStreak: Math.max(1, userStreak.maxStreak), lastActivityDate: today },
           });
         }
       }
@@ -222,12 +197,8 @@ export async function executionRoutes(fastify: FastifyInstance) {
       },
     });
 
-    const updatedProfile = await (prisma as any).profile.findUnique({
-      where: { userId: user.id },
-    });
-    const updatedStreak = await (prisma as any).streak.findUnique({
-      where: { userId: user.id },
-    });
+    const updatedProfile = await (prisma as any).profile.findUnique({ where: { userId: user.id } });
+    const updatedStreak = await (prisma as any).streak.findUnique({ where: { userId: user.id } });
 
     return reply.send({
       success: isAccepted,
@@ -254,7 +225,6 @@ export async function executionRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // Get Submissions for Challenge
   fastify.get('/challenges/:id/submissions', { preHandler: [authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const user = (request as any).user;
@@ -268,10 +238,7 @@ export async function executionRoutes(fastify: FastifyInstance) {
     }
 
     const submissions = await (prisma as any).submission.findMany({
-      where: {
-        userId: user.id,
-        challengeId: challenge.id,
-      },
+      where: { userId: user.id, challengeId: challenge.id },
       orderBy: { submittedAt: 'desc' },
       take: 20,
     });
