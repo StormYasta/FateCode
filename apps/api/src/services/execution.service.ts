@@ -90,7 +90,7 @@ function extractJavaScriptFunctionCandidates(code: string): string[] {
 }
 
 const PYTHON_RUNNER = String.raw`
-import sys, json, io, contextlib, traceback
+import sys, json, io, contextlib
 
 payload = json.loads(sys.stdin.read())
 code = payload.get('code', '')
@@ -103,6 +103,7 @@ safe_builtins = {
     'str': str, 'int': int, 'float': float, 'bool': bool,
     'abs': abs, 'all': all, 'any': any, 'zip': zip,
     'map': map, 'filter': filter, 'round': round, 'pow': pow,
+    'chr': chr, 'ord': ord, 'isinstance': isinstance, 'print': print,
     'Exception': Exception, 'ValueError': ValueError, 'TypeError': TypeError,
     'IndexError': IndexError, 'KeyError': KeyError, 'RuntimeError': RuntimeError,
 }
@@ -238,7 +239,6 @@ export class ExecutionService {
     }
   }
 
-  /** Executes JavaScript in an isolated VM context against the supplied test cases. */
   static async runJavaScript(code: string, testCases: TestCase[]): Promise<ExecutionResult> {
     const logs: string[] = [];
     const errors: string[] = [];
