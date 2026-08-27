@@ -73,15 +73,50 @@ async function updateStreak(userId: string) {
     const next = current.currentStreak + 1;
     await (prisma as any).streak.update({
       where: { userId },
-      data: { currentStreak: next, maxStreak: Math.max(next, current.maxStreak), lastActivityDate: today },
+      data: {
+        currentStreak: next,
+        maxStreak: Math.max(next, current.maxStreak),
+        lastActivityDate: today,
+      },
     });
     return;
   }
 
   await (prisma as any).streak.update({
     where: { userId },
-    data: { currentStreak: 1, maxStreak: Math.max(1, current.maxStreak), lastActivityDate: today },
+    data: {
+      currentStreak: 1,
+      maxStreak: Math.max(1, current.maxStreak),
+      lastActivityDate: today,
+    },
   });
+}
+
+async function findStudentAcademicAssignment(userId: string, exerciseId: string, assignmentId?: string | null) {
+  if (assignmentId) {
+    return (prisma as any).academicAssignment.findFirst({
+      where: {
+        id: assignmentId,
+        exerciseId,
+        class: { members: { some: { userId } } },
+      },
+      select: { id: true },
+    });
+  }
+
+  const now = new Date();
+  const candidates = await (prisma as any).academicAssignment.findMany({
+    where: {
+      exerciseId,
+      startDate: { lte: now },
+      OR: [{ dueDate: null }, { dueDate: { gte: now } }],
+      class: { members: { some: { userId } } },
+    },
+    select: { id: true },
+    take: 2,
+  });
+
+  return candidates.length === 1 ? candidates[0] : null;
 }
 
 export async function academicExerciseRoutes(fastify: FastifyInstance) {
@@ -135,7 +170,12 @@ export async function academicExerciseRoutes(fastify: FastifyInstance) {
 
     const safe = exercises.map((exercise: any) => {
       if (elevated) return exercise;
-      const { correctAnswer: _correct, explanation: _explanation, numericTolerance: _tolerance, ...rest } = exercise;
+      const {
+        correctAnswer: _correct,
+        explanation: _explanation,
+        numericTolerance: _tolerance,
+        ...rest
+      } = exercise;
       return rest;
     });
 
@@ -144,6 +184,7 @@ export async function academicExerciseRoutes(fastify: FastifyInstance) {
 
   fastify.get('/:idOrSlug', { preHandler: [authenticate] }, async (request, reply) => {
     const { idOrSlug } = request.params as { idOrSlug: string };
+    const query = z.object({ assignmentId: z.string().uuid().optional() }).safeParse(request.query);
     const user = (request as any).user;
     const elevated = user.role === 'ADMIN' || user.role === 'PROFESSOR';
 
@@ -151,12 +192,29 @@ export async function academicExerciseRoutes(fastify: FastifyInstance) {
       where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
     });
 
-    if (!exercise || (!elevated && !exercise.isPublished)) {
+    if (!exercise) {
       return reply.status(404).send({ error: 'Not Found', message: 'Exercício não encontrado.' });
     }
 
+    if (!elevated && !exercise.isPublished) {
+      const assignment = await findStudentAcademicAssignment(
+        user.id,
+        exercise.id,
+        query.success ? query.data.assignmentId : null
+      );
+      if (!assignment) {
+        return reply.status(404).send({ error: 'Not Found', message: 'Exercício não encontrado.' });
+      }
+    }
+
     if (elevated) return reply.send({ data: exercise });
-    const { correctAnswer: _correct, explanation: _explanation, numericTolerance: _tolerance, ...safe } = exercise;
+
+    const {
+      correctAnswer: _correct,
+      explanation: _explanation,
+      numericTolerance: _tolerance,
+      ...safe
+    } = exercise;
     return reply.send({ data: safe });
   });
 
@@ -169,7 +227,9 @@ export async function academicExerciseRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Validation Error', details: parsed.error.errors });
       }
 
-      const existing = await (prisma as any).academicExercise.findUnique({ where: { slug: parsed.data.slug.toLowerCase() } });
+      const existing = await (prisma as any).academicExercise.findUnique({
+        where: { slug: parsed.data.slug.toLowerCase() },
+      });
       if (existing) {
         return reply.status(409).send({ error: 'Conflict', message: 'Já existe um exercício com este slug.' });
       }
@@ -220,7 +280,7 @@ export async function academicExerciseRoutes(fastify: FastifyInstance) {
     async (_request, reply) => {
       const result = await AcademicCatalogService.seedValidationCatalog();
       return reply.send({
-        message: `${result.created} exercício(s) adicionados. Catálogo de validação: ${result.total}.`,
+        message: `${result.created} exercício(s) adicionados. Base MMD-001 disponível: ${result.total}/100.`,
         data: result,
       });
     }
@@ -239,36 +299,25 @@ export async function academicExerciseRoutes(fastify: FastifyInstance) {
       where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
     });
 
-    if (!exercise || (!exercise.isPublished && user.role === 'STUDENT')) {
+    if (!exercise) {
       return reply.status(404).send({ error: 'Not Found', message: 'Exercício não encontrado.' });
     }
 
-    let assignmentId = parsed.data.assignmentId || null;
+    let assignmentId: string | null = null;
 
-    if (assignmentId) {
-      const assignment = await (prisma as any).assignment.findFirst({
-        where: {
-          id: assignmentId,
-          academicExerciseId: exercise.id,
-          class: { members: { some: { userId: user.id } } },
-        },
-      });
-      if (!assignment && user.role === 'STUDENT') {
+    if (user.role === 'STUDENT') {
+      const assignment = await findStudentAcademicAssignment(user.id, exercise.id, parsed.data.assignmentId);
+      assignmentId = assignment?.id || null;
+
+      if (parsed.data.assignmentId && !assignment) {
         return reply.status(403).send({ error: 'Forbidden', message: 'Esta atividade não pertence a uma turma do aluno.' });
       }
-    } else if (user.role === 'STUDENT') {
-      const now = new Date();
-      const candidates = await (prisma as any).assignment.findMany({
-        where: {
-          academicExerciseId: exercise.id,
-          startDate: { lte: now },
-          OR: [{ dueDate: null }, { dueDate: { gte: now } }],
-          class: { members: { some: { userId: user.id } } },
-        },
-        select: { id: true },
-        take: 2,
-      });
-      if (candidates.length === 1) assignmentId = candidates[0].id;
+
+      if (!exercise.isPublished && !assignmentId) {
+        return reply.status(404).send({ error: 'Not Found', message: 'Exercício não encontrado.' });
+      }
+    } else {
+      assignmentId = parsed.data.assignmentId || null;
     }
 
     const evaluation = evaluateAnswer(exercise, parsed.data.answer);
@@ -283,7 +332,7 @@ export async function academicExerciseRoutes(fastify: FastifyInstance) {
         data: {
           userId: user.id,
           amount: xpEarned,
-          reason: `Conclusão do exercício "${exercise.title}"`,
+          reason: `Conclusão de Matemática Discreta: "${exercise.title}"`,
           referenceId: exercise.id,
         },
       });
