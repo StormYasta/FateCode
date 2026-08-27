@@ -1,32 +1,97 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import confetti from 'canvas-confetti';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  Code2, 
-  Play, 
-  Send, 
-  Star, 
-  Flame, 
-  Trophy, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  Lock, 
-  Unlock, 
-  MessageSquare, 
-  ArrowLeft, 
-  RotateCcw, 
-  Terminal, 
-  ListChecks, 
-  User as UserIcon,
-  CornerDownRight
+import {
+  Code2,
+  Play,
+  Send,
+  Star,
+  Flame,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Lock,
+  Unlock,
+  MessageSquare,
+  ArrowLeft,
+  RotateCcw,
+  Terminal,
+  ListChecks,
 } from 'lucide-react';
+
+type EditorLanguage = 'javascript' | 'typescript' | 'python';
+
+type StarterSignature = {
+  name: string;
+  params: string[];
+};
+
+function editorLanguageFromChallenge(language?: string): EditorLanguage {
+  if (language === 'PYTHON') return 'python';
+  if (language === 'TYPESCRIPT') return 'typescript';
+  return 'javascript';
+}
+
+function extractStarterSignature(initialCode: string): StarterSignature {
+  const jsMatch = initialCode.match(/function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/);
+  if (jsMatch) {
+    const params = jsMatch[2]
+      .split(',')
+      .map((param) => param.trim().replace(/=.*$/, '').replace(/\??:\s*.+$/, '').trim())
+      .filter((param) => /^[A-Za-z_$][\w$]*$/.test(param));
+    return { name: jsMatch[1], params };
+  }
+
+  const pythonMatch = initialCode.match(/def\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/);
+  if (pythonMatch) {
+    const params = pythonMatch[2]
+      .split(',')
+      .map((param) => param.trim().replace(/=.*$/, '').replace(/:\s*.+$/, '').trim())
+      .filter((param) => /^[A-Za-z_]\w*$/.test(param));
+    return { name: pythonMatch[1], params };
+  }
+
+  return { name: 'solve', params: ['input'] };
+}
+
+function starterForLanguage(challenge: any, language: EditorLanguage): string {
+  const initial = String(challenge?.initialCode || '');
+  const primary = editorLanguageFromChallenge(challenge?.language);
+
+  if (language === primary && initial.trim()) return initial;
+  if (language === 'typescript' && primary === 'javascript' && initial.trim()) return initial;
+  if (language === 'javascript' && primary === 'typescript' && initial.trim() && !initial.includes(':')) return initial;
+
+  const signature = extractStarterSignature(initial);
+  const params = signature.params.join(', ');
+
+  if (language === 'python') {
+    return `def ${signature.name}(${params}):\n    # Escreva sua solução aqui\n    pass\n`;
+  }
+
+  return `function ${signature.name}(${params}) {\n  // Escreva sua solução aqui\n  return undefined;\n}\n`;
+}
+
+function codeStorageKey(challengeId: string, language: EditorLanguage) {
+  return `fatecode_code_${challengeId}_${language}`;
+}
+
+function displayValue(value: any) {
+  if (value === undefined) return 'undefined';
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
 
 export const ChallengeSolve: React.FC = () => {
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
+  const [searchParams] = useSearchParams();
+  const assignmentId = searchParams.get('assignmentId') || searchParams.get('assignment');
   const { user, refreshUser } = useAuth();
 
   const [challenge, setChallenge] = useState<any | null>(null);
@@ -34,13 +99,11 @@ export const ChallengeSolve: React.FC = () => {
   const [activeLeftTab, setActiveLeftTab] = useState<'description' | 'submissions' | 'community' | 'comments'>('description');
   const [activeBottomTab, setActiveBottomTab] = useState<'tests' | 'console'>('tests');
 
-  // Code state
-  const [language, setLanguage] = useState<'javascript' | 'typescript' | 'python'>('javascript');
+  const [language, setLanguage] = useState<EditorLanguage>('javascript');
   const [code, setCode] = useState<string>('');
   const [executing, setExecuting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Results & Community state
   const [executionResult, setExecutionResult] = useState<any | null>(null);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [communitySolutions, setCommunitySolutions] = useState<any[]>([]);
@@ -65,13 +128,14 @@ export const ChallengeSolve: React.FC = () => {
         const accepted = subs.some((s: any) => s.status === 'ACCEPTED');
         setIsCompleted(accepted);
 
-        const savedCode = localStorage.getItem(`fatecode_code_${ch.id}`);
-        setCode(savedCode || ch.initialCode || '');
+        const initialLanguage = editorLanguageFromChallenge(ch.language);
+        setLanguage(initialLanguage);
 
-        // Load comments
+        const languageDraft = localStorage.getItem(codeStorageKey(ch.id, initialLanguage));
+        const legacyDraft = localStorage.getItem(`fatecode_code_${ch.id}`);
+        setCode(languageDraft || legacyDraft || starterForLanguage(ch, initialLanguage));
+
         loadComments(ch.id);
-
-        // If completed or teacher, load community solutions
         if (accepted || user?.role === 'PROFESSOR' || user?.role === 'ADMIN') {
           loadCommunitySolutions(ch.id);
         }
@@ -120,17 +184,29 @@ export const ChallengeSolve: React.FC = () => {
     const newCode = value || '';
     setCode(newCode);
     if (challenge?.id) {
-      localStorage.setItem(`fatecode_code_${challenge.id}`, newCode);
+      localStorage.setItem(codeStorageKey(challenge.id, language), newCode);
     }
   };
 
+  const handleLanguageChange = (nextLanguage: EditorLanguage) => {
+    if (!challenge || nextLanguage === language) return;
+
+    localStorage.setItem(codeStorageKey(challenge.id, language), code);
+    const nextDraft = localStorage.getItem(codeStorageKey(challenge.id, nextLanguage));
+    const nextCode = nextDraft || starterForLanguage(challenge, nextLanguage);
+
+    setLanguage(nextLanguage);
+    setCode(nextCode);
+    localStorage.setItem(codeStorageKey(challenge.id, nextLanguage), nextCode);
+    setExecutionResult(null);
+  };
+
   const handleResetCode = () => {
-    if (challenge?.initialCode) {
-      setCode(challenge.initialCode);
-      if (challenge?.id) {
-        localStorage.setItem(`fatecode_code_${challenge.id}`, challenge.initialCode);
-      }
-    }
+    if (!challenge) return;
+    const starter = starterForLanguage(challenge, language);
+    setCode(starter);
+    localStorage.setItem(codeStorageKey(challenge.id, language), starter);
+    setExecutionResult(null);
   };
 
   const handleExecute = async () => {
@@ -139,7 +215,6 @@ export const ChallengeSolve: React.FC = () => {
     setActiveBottomTab('tests');
 
     try {
-      // Record development event
       api.post(`/challenges/${challenge.id}/events`, { eventType: 'CODE_EXECUTED' }).catch(() => {});
 
       const res = await api.post(`/challenges/${challenge.id}/execute`, {
@@ -172,6 +247,7 @@ export const ChallengeSolve: React.FC = () => {
       const res = await api.post(`/challenges/${challenge.id}/submit`, {
         code,
         language: language.toUpperCase(),
+        assignmentId: assignmentId || null,
       });
 
       const data = res.data;
@@ -196,7 +272,10 @@ export const ChallengeSolve: React.FC = () => {
       setExecutionResult({
         success: false,
         status: 'RUNTIME_ERROR',
-        message: err.response?.data?.message || 'Falha ao submeter solução.',
+        passedTests: 0,
+        totalTests: challenge.publicTests?.length || 0,
+        stderr: err.response?.data?.message || 'Falha ao submeter solução.',
+        testResults: [],
       });
     } finally {
       setSubmitting(false);
@@ -228,11 +307,10 @@ export const ChallengeSolve: React.FC = () => {
 
   return (
     <div className="space-y-4 max-w-[1600px] mx-auto">
-      {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f1628]/90 border border-slate-800 p-4 rounded-2xl shadow-xl">
         <div className="flex items-center space-x-3">
           <Link
-            to="/learning-paths"
+            to="/practice/programming"
             className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -258,7 +336,6 @@ export const ChallengeSolve: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex items-center space-x-3">
           <button
             onClick={handleExecute}
@@ -292,11 +369,8 @@ export const ChallengeSolve: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Split Grid */}
       <div className="grid lg:grid-cols-2 gap-4 min-h-[680px]">
-        {/* Left Side: Description & Tabs */}
         <div className="flex flex-col bg-[#0f1628]/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-          {/* Tab bar */}
           <div className="flex items-center border-b border-slate-800 bg-slate-900/60 px-4">
             <button
               onClick={() => setActiveLeftTab('description')}
@@ -345,7 +419,6 @@ export const ChallengeSolve: React.FC = () => {
             </button>
           </div>
 
-          {/* Tab content */}
           <div className="p-6 flex-1 overflow-y-auto max-h-[620px]">
             {activeLeftTab === 'description' && (
               <div className="space-y-5">
@@ -363,10 +436,10 @@ export const ChallengeSolve: React.FC = () => {
                       <div key={idx} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs font-mono">
                         <div className="text-slate-400 text-[11px] mb-1">{tc.description || `Exemplo ${idx + 1}`}</div>
                         <div className="text-slate-300">
-                          <span className="text-indigo-400">Entrada:</span> {JSON.stringify(tc.input)}
+                          <span className="text-indigo-400">Entrada:</span> {displayValue(tc.input)}
                         </div>
                         <div className="text-slate-300">
-                          <span className="text-emerald-400">Esperado:</span> {JSON.stringify(tc.expected)}
+                          <span className="text-emerald-400">Esperado:</span> {displayValue(tc.expected)}
                         </div>
                       </div>
                     ))}
@@ -401,17 +474,17 @@ export const ChallengeSolve: React.FC = () => {
                         )}
                         <div>
                           <div className="font-bold text-white">
-                            {sub.status === 'ACCEPTED' ? 'Aceito' : 'Rejeitado'}
+                            {sub.status === 'ACCEPTED' ? 'Aceito' : sub.status}
                           </div>
                           <div className="text-[10px] text-slate-400 font-mono">
-                            {new Date(sub.submittedAt).toLocaleString('pt-BR')}
+                            {sub.language} • {new Date(sub.submittedAt).toLocaleString('pt-BR')}
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center space-x-3 font-mono text-[11px]">
                         <span className="text-slate-400">{sub.passedTests}/{sub.totalTests} testes</span>
-                        {sub.executionTimeMs && (
+                        {sub.executionTimeMs !== null && sub.executionTimeMs !== undefined && (
                           <span className="text-indigo-400">{sub.executionTimeMs}ms</span>
                         )}
                       </div>
@@ -491,7 +564,6 @@ export const ChallengeSolve: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Side: Monaco Editor & Output/Tests Panel */}
         <div className="flex flex-col space-y-3">
           <div className="flex-1 rounded-2xl bg-[#0d121f] border border-slate-800 overflow-hidden shadow-xl flex flex-col min-h-[380px]">
             <div className="flex items-center justify-between px-4 py-2 bg-slate-900/80 border-b border-slate-800 text-xs">
@@ -499,19 +571,19 @@ export const ChallengeSolve: React.FC = () => {
                 <Code2 className="w-3.5 h-3.5 text-indigo-400" />
                 <select
                   value={language}
-                  onChange={(e: any) => setLanguage(e.target.value)}
+                  onChange={(event) => handleLanguageChange(event.target.value as EditorLanguage)}
                   className="bg-slate-800 border border-slate-700 text-xs text-white rounded-lg px-2.5 py-1 focus:outline-none"
                 >
                   <option value="javascript">JavaScript</option>
                   <option value="typescript">TypeScript</option>
                   <option value="python">Python</option>
                 </select>
-                <span className="text-[10px] text-slate-400">Auto-save ativado</span>
+                <span className="text-[10px] text-slate-400">Rascunho separado por linguagem</span>
               </div>
 
               <button
                 onClick={handleResetCode}
-                title="Restaurar código inicial"
+                title={`Restaurar código inicial de ${language}`}
                 className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors flex items-center space-x-1"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -533,13 +605,13 @@ export const ChallengeSolve: React.FC = () => {
                   minimap: { enabled: false },
                   scrollBeyondLastLine: false,
                   automaticLayout: true,
-                  tabSize: 2,
+                  tabSize: language === 'python' ? 4 : 2,
                 }}
               />
             </div>
           </div>
 
-          <div className="rounded-2xl bg-[#0f1628]/90 border border-slate-800 overflow-hidden shadow-xl min-h-[240px] flex flex-col">
+          <div className="rounded-2xl bg-[#0f1628]/90 border border-slate-800 overflow-hidden shadow-xl min-h-[260px] flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-4">
               <div className="flex items-center space-x-2">
                 <button
@@ -556,7 +628,7 @@ export const ChallengeSolve: React.FC = () => {
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                       executionResult.success ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
                     }`}>
-                      {executionResult.passedTests}/{executionResult.totalTests}
+                      {executionResult.passedTests || 0}/{executionResult.totalTests || 0}
                     </span>
                   )}
                 </button>
@@ -581,7 +653,7 @@ export const ChallengeSolve: React.FC = () => {
               )}
             </div>
 
-            <div className="p-4 flex-1 overflow-y-auto max-h-[190px] font-mono text-xs">
+            <div className="p-4 flex-1 overflow-y-auto max-h-[240px] font-mono text-xs">
               {activeBottomTab === 'tests' && (
                 <div>
                   {!executionResult ? (
@@ -589,34 +661,67 @@ export const ChallengeSolve: React.FC = () => {
                       Clique em "Executar Testes" ou "Submeter Solução" para avaliar seu código.
                     </p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
+                      {(executionResult.status === 'RUNTIME_ERROR' || executionResult.status === 'COMPILATION_ERROR' || executionResult.status === 'TIME_LIMIT_EXCEEDED') && (
+                        <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-200">
+                          <div className="font-bold mb-1">{executionResult.status === 'COMPILATION_ERROR' ? 'Erro de sintaxe/compilação' : executionResult.status === 'TIME_LIMIT_EXCEEDED' ? 'Tempo limite excedido' : 'Erro de execução'}</div>
+                          <div className="text-[11px] whitespace-pre-wrap">{executionResult.stderr || executionResult.message || 'Não foi possível executar a solução.'}</div>
+                        </div>
+                      )}
+
                       {executionResult.testResults?.map((tr: any, idx: number) => (
                         <div
                           key={idx}
-                          className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                          className={`p-3 rounded-xl border ${
                             tr.passed
-                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
-                              : 'bg-rose-500/10 border-rose-500/20 text-rose-300'
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-200'
+                              : 'bg-rose-500/10 border-rose-500/20 text-rose-200'
                           }`}
                         >
-                          <div className="flex items-center space-x-2">
-                            {tr.passed ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                            ) : (
-                              <XCircle className="w-4 h-4 text-rose-400" />
-                            )}
-                            <div>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center space-x-2">
+                              {tr.passed ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                              )}
                               <div className="font-bold">{tr.description || `Teste ${idx + 1}`}</div>
-                              <div className="text-[10px] opacity-80">
-                                Entrada: {JSON.stringify(tr.input)} | Esperado: {JSON.stringify(tr.expected)} | Retorno: {JSON.stringify(tr.actual)}
-                              </div>
+                            </div>
+                            <span className="text-[10px] font-bold uppercase">{tr.passed ? 'Passou' : 'Falhou'}</span>
+                          </div>
+
+                          <div className="grid sm:grid-cols-3 gap-2 mt-2 text-[10px]">
+                            <div className="rounded-lg bg-black/15 p-2">
+                              <div className="opacity-60 uppercase mb-1">Entrada</div>
+                              <div className="break-all">{displayValue(tr.input)}</div>
+                            </div>
+                            <div className="rounded-lg bg-black/15 p-2">
+                              <div className="opacity-60 uppercase mb-1">Esperado</div>
+                              <div className="break-all">{displayValue(tr.expected)}</div>
+                            </div>
+                            <div className="rounded-lg bg-black/15 p-2">
+                              <div className="opacity-60 uppercase mb-1">Obtido</div>
+                              <div className="break-all">{displayValue(tr.actual)}</div>
                             </div>
                           </div>
-                          <span className="text-[10px] font-bold uppercase">
-                            {tr.passed ? 'Passou' : 'Falhou'}
-                          </span>
+
+                          {tr.error && (
+                            <div className="mt-2 rounded-lg bg-rose-950/30 p-2 text-[10px] text-rose-200 whitespace-pre-wrap">
+                              {tr.error}
+                            </div>
+                          )}
                         </div>
                       ))}
+
+                      {executionResult.hiddenTestsCount > 0 && (
+                        <div className="text-[10px] text-slate-500 px-1">
+                          + {executionResult.hiddenTestsCount} teste(s) oculto(s) avaliados na submissão. Os dados desses casos não são exibidos.
+                        </div>
+                      )}
+
+                      {!executionResult.testResults?.length && !executionResult.stderr && executionResult.message && (
+                        <div className="text-slate-300 p-3 rounded-xl bg-slate-900/70 border border-slate-800">{executionResult.message}</div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -644,23 +749,16 @@ export const ChallengeSolve: React.FC = () => {
         </div>
       </div>
 
-      {/* Celebration Modal */}
       {celebrationData && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-gradient-to-b from-[#161f36] to-[#0c1220] border border-indigo-500/40 rounded-3xl p-8 shadow-2xl text-center space-y-6 animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500 to-indigo-500 p-0.5 mx-auto shadow-2xl shadow-indigo-500/40">
-              <div className="w-full h-full bg-[#090d16] rounded-[22px] flex items-center justify-center text-3xl">
-                🏆
-              </div>
+              <div className="w-full h-full bg-[#090d16] rounded-[22px] flex items-center justify-center text-3xl">🏆</div>
             </div>
 
             <div>
-              <h2 className="text-2xl font-black text-white tracking-tight">
-                DESAFIO CONCLUÍDO!
-              </h2>
-              <p className="text-xs text-slate-300 mt-1">
-                Todos os testes públicos e ocultos foram aprovados com sucesso.
-              </p>
+              <h2 className="text-2xl font-black text-white tracking-tight">DESAFIO CONCLUÍDO!</h2>
+              <p className="text-xs text-slate-300 mt-1">Todos os testes públicos e ocultos foram aprovados com sucesso.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
