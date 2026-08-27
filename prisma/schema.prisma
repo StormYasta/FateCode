@@ -206,9 +206,10 @@ model Class {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members     ClassMember[]
-  assignments Assignment[]
-  rankings    Ranking[]
+  members             ClassMember[]
+  assignments         Assignment[]
+  academicAssignments AcademicAssignment[]
+  rankings            Ranking[]
 
   @@unique([courseId, code])
   @@index([courseId])
@@ -229,7 +230,7 @@ model ClassMember {
 }
 
 // --------------------------------------------------------
-// PEDAGOGICAL STRUCTURE (PHASE 2+)
+// PEDAGOGICAL STRUCTURE
 // --------------------------------------------------------
 
 model LearningPath {
@@ -313,8 +314,38 @@ model Challenge {
   @@index([source])
 }
 
+model Assignment {
+  id          String    @id @default(uuid())
+  title       String
+  classId     String
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  startDate   DateTime  @default(now())
+  dueDate     DateTime?
+  isOptional  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  submissions Submission[]
+
+  @@index([classId])
+  @@index([challengeId])
+}
+
+model DailyChallenge {
+  id          String    @id @default(uuid())
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  activeDate  DateTime  @unique @db.Date
+  extraXp     Int       @default(100)
+  createdAt   DateTime  @default(now())
+
+  @@index([activeDate])
+}
+
 // --------------------------------------------------------
-// SUBJECTS MODULE
+// DISCRETE MATHEMATICS / COMPLEMENTARY ACADEMIC MODULE
 // --------------------------------------------------------
 
 model AcademicExercise {
@@ -335,7 +366,7 @@ model AcademicExercise {
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
-  assignments Assignment[]
+  assignments AcademicAssignment[]
   submissions AcademicSubmission[]
 
   @@index([subject])
@@ -344,42 +375,47 @@ model AcademicExercise {
   @@index([isPublished])
 }
 
-model Assignment {
-  id                 String            @id @default(uuid())
-  title              String
-  classId            String
-  class              Class             @relation(fields: [classId], references: [id], onDelete: Cascade)
-  challengeId        String?
-  challenge          Challenge?        @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  academicExerciseId String?
-  academicExercise   AcademicExercise? @relation(fields: [academicExerciseId], references: [id], onDelete: Cascade)
-  startDate          DateTime          @default(now())
-  dueDate            DateTime?
-  isOptional         Boolean           @default(false)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+model AcademicAssignment {
+  id         String           @id @default(uuid())
+  title      String
+  classId    String
+  class      Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  exerciseId String
+  exercise   AcademicExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  startDate  DateTime         @default(now())
+  dueDate    DateTime?
+  isOptional Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
-  submissions         Submission[]
-  academicSubmissions AcademicSubmission[]
+  submissions AcademicSubmission[]
 
   @@index([classId])
-  @@index([challengeId])
-  @@index([academicExerciseId])
+  @@index([exerciseId])
 }
 
-model DailyChallenge {
-  id          String    @id @default(uuid())
-  challengeId String
-  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  activeDate  DateTime  @unique @db.Date
-  extraXp     Int       @default(100)
-  createdAt   DateTime  @default(now())
+model AcademicSubmission {
+  id           String             @id @default(uuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId   String
+  exercise     AcademicExercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  assignmentId String?
+  assignment   AcademicAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  answer       Json
+  isCorrect    Boolean
+  score        Float              @default(0)
+  xpEarned     Int                @default(0)
+  submittedAt  DateTime           @default(now())
 
-  @@index([activeDate])
+  @@index([userId])
+  @@index([exerciseId])
+  @@index([assignmentId])
+  @@index([isCorrect])
 }
 
 // --------------------------------------------------------
-// PROGRAMMING SUBMISSIONS
+// PROGRAMMING EXECUTION & SUBMISSIONS
 // --------------------------------------------------------
 
 model Submission {
@@ -408,26 +444,6 @@ model Submission {
   @@index([userId])
   @@index([challengeId])
   @@index([status])
-}
-
-model AcademicSubmission {
-  id           String           @id @default(uuid())
-  userId       String
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  exerciseId   String
-  exercise     AcademicExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  assignmentId String?
-  assignment   Assignment?      @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
-  answer       Json
-  isCorrect    Boolean
-  score        Float            @default(0)
-  xpEarned     Int              @default(0)
-  submittedAt  DateTime         @default(now())
-
-  @@index([userId])
-  @@index([exerciseId])
-  @@index([assignmentId])
-  @@index([isCorrect])
 }
 
 model Execution {
