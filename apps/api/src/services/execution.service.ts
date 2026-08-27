@@ -215,11 +215,7 @@ except Exception as exc:
 `;
 
 export class ExecutionService {
-  static async run(
-    code: string,
-    testCases: TestCase[],
-    language: string
-  ): Promise<ExecutionResult> {
+  static async run(code: string, testCases: TestCase[], language: string): Promise<ExecutionResult> {
     switch (language) {
       case 'JAVASCRIPT':
         return this.runJavaScript(code, testCases);
@@ -229,12 +225,7 @@ export class ExecutionService {
         return this.runPython(code, testCases);
       default: {
         const startTime = Date.now();
-        return errorResult(
-          testCases,
-          'COMPILATION_ERROR',
-          `A linguagem ${language} ainda não possui executor habilitado no FateCode.`,
-          startTime
-        );
+        return errorResult(testCases, 'COMPILATION_ERROR', `A linguagem ${language} ainda não possui executor habilitado no FateCode.`, startTime);
       }
     }
   }
@@ -291,13 +282,7 @@ export class ExecutionService {
       }
 
       if (!targetFn) {
-        return errorResult(
-          testCases,
-          'RUNTIME_ERROR',
-          'Nenhuma função principal foi encontrada no seu código. Declare uma função (ex: function solve(...) { ... }).',
-          startTime,
-          logs.join('\n')
-        );
+        return errorResult(testCases, 'RUNTIME_ERROR', 'Nenhuma função principal foi encontrada no seu código. Declare uma função (ex: function solve(...) { ... }).', startTime, logs.join('\n'));
       }
 
       const testResults: ExecutionResult['testResults'] = [];
@@ -310,22 +295,9 @@ export class ExecutionService {
           const passed = deepEqual(actual, tc.expected);
           if (passed) passedCount++;
 
-          testResults.push({
-            description: tc.description,
-            input: tc.input,
-            expected: tc.expected,
-            actual,
-            passed,
-          });
+          testResults.push({ description: tc.description, input: tc.input, expected: tc.expected, actual, passed });
         } catch (err: any) {
-          testResults.push({
-            description: tc.description,
-            input: tc.input,
-            expected: tc.expected,
-            actual: null,
-            passed: false,
-            error: err.message,
-          });
+          testResults.push({ description: tc.description, input: tc.input, expected: tc.expected, actual: null, passed: false, error: err.message });
         }
       }
 
@@ -345,9 +317,7 @@ export class ExecutionService {
       return errorResult(
         testCases,
         isTimeout ? 'TIME_LIMIT_EXCEEDED' : 'RUNTIME_ERROR',
-        isTimeout
-          ? 'Tempo limite de execução excedido (Timeout > 2000ms). Verifique se há loops infinitos.'
-          : `Erro de Execução: ${err.message}`,
+        isTimeout ? 'Tempo limite de execução excedido (Timeout > 2000ms). Verifique se há loops infinitos.' : `Erro de Execução: ${err.message}`,
         startTime,
         logs.join('\n')
       );
@@ -357,20 +327,14 @@ export class ExecutionService {
   static async runTypeScript(code: string, testCases: TestCase[]): Promise<ExecutionResult> {
     const startTime = Date.now();
     const transpiled = ts.transpileModule(code, {
-      compilerOptions: {
-        target: ts.ScriptTarget.ES2020,
-        module: ts.ModuleKind.None,
-        strict: false,
-      },
+      compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.None, strict: false },
       reportDiagnostics: true,
       fileName: 'student_solution.ts',
     });
 
     const errors = (transpiled.diagnostics || []).filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error);
     if (errors.length) {
-      const message = errors
-        .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'))
-        .join('\n');
+      const message = errors.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')).join('\n');
       return errorResult(testCases, 'COMPILATION_ERROR', `Erro de TypeScript: ${message}`, startTime);
     }
 
@@ -399,29 +363,15 @@ export class ExecutionService {
 
       const timeout = setTimeout(() => {
         child.kill('SIGKILL');
-        finish(errorResult(
-          testCases,
-          'TIME_LIMIT_EXCEEDED',
-          'Tempo limite de execução excedido (Timeout > 2500ms). Verifique se há loops infinitos.',
-          startTime
-        ));
+        finish(errorResult(testCases, 'TIME_LIMIT_EXCEEDED', 'Tempo limite de execução excedido (Timeout > 2500ms). Verifique se há loops infinitos.', startTime));
       }, 2500);
 
-      child.stdout.on('data', (chunk) => {
-        stdout += chunk.toString();
-      });
-      child.stderr.on('data', (chunk) => {
-        stderr += chunk.toString();
-      });
+      child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
+      child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
 
       child.on('error', (err) => {
         clearTimeout(timeout);
-        finish(errorResult(
-          testCases,
-          'RUNTIME_ERROR',
-          `Não foi possível iniciar o executor Python: ${err.message}`,
-          startTime
-        ));
+        finish(errorResult(testCases, 'RUNTIME_ERROR', `Não foi possível iniciar o executor Python: ${err.message}`, startTime));
       });
 
       child.on('close', () => {
@@ -441,12 +391,7 @@ export class ExecutionService {
             executionTimeMs: Date.now() - startTime,
           });
         } catch {
-          finish(errorResult(
-            testCases,
-            'RUNTIME_ERROR',
-            stderr || stdout || 'O executor Python retornou uma resposta inválida.',
-            startTime
-          ));
+          finish(errorResult(testCases, 'RUNTIME_ERROR', stderr || stdout || 'O executor Python retornou uma resposta inválida.', startTime));
         }
       });
 
