@@ -1,16 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Calculator, CalendarDays, Code2, ListChecks } from 'lucide-react';
+import { ArrowRight, Binary, CalendarDays, Code2, ListChecks } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
-
-const subjectLabels: Record<string, string> = {
-  DISCRETE_MATHEMATICS: 'Matemática Discreta',
-  PROGRAMMING_LOGIC: 'Lógica de Programação',
-  CALCULUS: 'Cálculo',
-  STATISTICS: 'Estatística',
-  OPERATIONS_RESEARCH: 'Pesquisa Operacional',
-  OTHER: 'Outra disciplina',
-};
 
 export const ClassAssignmentsSection: React.FC<{ classId: string }> = ({ classId }) => {
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -31,13 +22,16 @@ export const ClassAssignmentsSection: React.FC<{ classId: string }> = ({ classId
   }, [classId]);
 
   const programming = useMemo(() => assignments.filter((item) => Boolean(item.challenge)), [assignments]);
-  const subjects = useMemo(() => assignments.filter((item) => Boolean(item.academicExercise)), [assignments]);
+  const discreteMath = useMemo(
+    () => assignments.filter((item) => item.academicExercise?.subject === 'DISCRETE_MATHEMATICS'),
+    [assignments]
+  );
 
   const renderGroup = (title: string, items: any[], programmingGroup: boolean) => (
     <div className="rounded-2xl bg-white dark:bg-[#0f1628]/80 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
       <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {programmingGroup ? <Code2 className="w-4 h-4 text-indigo-500" /> : <Calculator className="w-4 h-4 text-emerald-500" />}
+          {programmingGroup ? <Code2 className="w-4 h-4 text-indigo-500" /> : <Binary className="w-4 h-4 text-emerald-500" />}
           <h3 className="font-bold text-sm text-slate-900 dark:text-white">{title}</h3>
         </div>
         <span className="text-[11px] text-slate-400">{items.length} atividade(s)</span>
@@ -58,7 +52,7 @@ export const ClassAssignmentsSection: React.FC<{ classId: string }> = ({ classId
                   <div className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate">{assignment.title}</div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
                     <span>{content.title}</span>
-                    {!programmingGroup && <><span>•</span><span>{subjectLabels[content.subject] || content.subject}</span></>}
+                    {!programmingGroup && <><span>•</span><span>MMD-001</span></>}
                     {assignment.dueDate && <><span>•</span><span className="inline-flex items-center gap-1"><CalendarDays className="w-3 h-3" /> {new Date(assignment.dueDate).toLocaleDateString('pt-BR')}</span></>}
                   </div>
                 </div>
@@ -79,7 +73,7 @@ export const ClassAssignmentsSection: React.FC<{ classId: string }> = ({ classId
         <ListChecks className="w-5 h-5 text-indigo-500" />
         <div>
           <h2 className="text-lg font-black text-slate-900 dark:text-white">Atividades da turma</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Programação e disciplinas permanecem em blocos separados.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">O conteúdo de programação e a Matemática Discreta permanecem separados.</p>
         </div>
       </div>
 
@@ -88,7 +82,7 @@ export const ClassAssignmentsSection: React.FC<{ classId: string }> = ({ classId
       ) : (
         <div className="grid lg:grid-cols-2 gap-4">
           {renderGroup('Programação', programming, true)}
-          {renderGroup('Disciplinas', subjects, false)}
+          {renderGroup('Matemática Discreta', discreteMath, false)}
         </div>
       )}
     </section>
