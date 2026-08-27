@@ -16,7 +16,7 @@ import {
   Wrench,
   Settings,
   Layers3,
-  Calculator,
+  Binary,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -93,9 +93,9 @@ export const Sidebar: React.FC = () => {
               <Wrench className="w-4 h-4 text-indigo-400" />
               <span>Desafios de Programação</span>
             </NavLink>
-            <NavLink to="/teacher/academic-exercises" className={linkClass}>
-              <Calculator className="w-4 h-4 text-emerald-400" />
-              <span>Exercícios de Disciplinas</span>
+            <NavLink to="/teacher/discrete-math" className={linkClass}>
+              <Binary className="w-4 h-4 text-emerald-400" />
+              <span>Matemática Discreta</span>
             </NavLink>
             <NavLink to="/codewars-import" className={linkClass}>
               <DownloadCloud className="w-4 h-4 text-rose-400" />
@@ -111,17 +111,17 @@ export const Sidebar: React.FC = () => {
         <div className="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs text-indigo-300">
           <div className="flex items-center space-x-2 font-bold mb-1">
             <Code2 className="w-4 h-4 text-indigo-400" />
-            <span>Programação + Disciplinas</span>
+            <span>Programação em primeiro lugar</span>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Dois módulos de exercícios no mesmo ecossistema, sem misturar correção ou experiência de resolução.
+            Matemática Discreta funciona como módulo complementar, sem misturar o fluxo dos desafios de código.
           </p>
         </div>
       </div>
 
       <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-3 px-2 flex justify-between items-center">
         <span>FateCode v1.5.0</span>
-        <span className="text-emerald-400 font-semibold font-mono">Disciplinas</span>
+        <span className="text-indigo-400 font-semibold font-mono">Code First</span>
       </div>
     </aside>
   );
