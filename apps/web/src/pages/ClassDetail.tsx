@@ -3,8 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { ClassContentSection } from '../components/ClassContentSection';
+import { ClassAssignmentsSection } from '../components/ClassAssignmentsSection';
 import {
-  Users,
   Trophy,
   Flame,
   Star,
@@ -97,6 +97,8 @@ export const ClassDetail: React.FC = () => {
       </div>
 
       <ClassContentSection classId={classData.id} canManage={Boolean(canManageClass)} />
+
+      <ClassAssignmentsSection classId={classData.id} />
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="space-y-4">
