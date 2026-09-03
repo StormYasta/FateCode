@@ -24,7 +24,6 @@ export const createFacultySchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
 });
-
 export const updateFacultySchema = createFacultySchema.partial();
 
 export const createCourseSchema = z.object({
@@ -33,7 +32,6 @@ export const createCourseSchema = z.object({
   description: z.string().optional(),
   facultyId: z.string().uuid('ID de faculdade inválido'),
 });
-
 export const updateCourseSchema = createCourseSchema.partial();
 
 export const createClassSchema = z.object({
@@ -43,7 +41,6 @@ export const createClassSchema = z.object({
   year: z.number().int().min(2020).max(2100),
   courseId: z.string().uuid('ID de curso inválido'),
 });
-
 export const updateClassSchema = createClassSchema.partial();
 
 export const addClassMemberSchema = z.object({
@@ -52,7 +49,7 @@ export const addClassMemberSchema = z.object({
 });
 
 // --------------------------------------------------------
-// PEDAGOGICAL SCHEMAS (FASE 2)
+// PEDAGOGICAL SCHEMAS
 // --------------------------------------------------------
 
 export const createLearningPathSchema = z.object({
@@ -61,7 +58,6 @@ export const createLearningPathSchema = z.object({
   description: z.string().optional(),
   courseId: z.string().uuid('ID do curso inválido').optional().nullable(),
 });
-
 export const updateLearningPathSchema = createLearningPathSchema.partial();
 
 export const createModuleSchema = z.object({
@@ -70,7 +66,6 @@ export const createModuleSchema = z.object({
   order: z.number().int().default(0),
   learningPathId: z.string().uuid('ID da trilha inválido'),
 });
-
 export const updateModuleSchema = createModuleSchema.partial();
 
 export const createTopicSchema = z.object({
@@ -79,8 +74,11 @@ export const createTopicSchema = z.object({
   order: z.number().int().default(0),
   moduleId: z.string().uuid('ID do módulo inválido'),
 });
-
 export const updateTopicSchema = createTopicSchema.partial();
+
+// --------------------------------------------------------
+// PROGRAMMING CHALLENGES
+// --------------------------------------------------------
 
 export const createChallengeSchema = z.object({
   title: z.string().min(3, 'O título do desafio é obrigatório'),
@@ -99,7 +97,6 @@ export const createChallengeSchema = z.object({
   isDaily: z.boolean().default(false),
   topicId: z.string().uuid('ID do tópico inválido').optional().nullable(),
 });
-
 export const updateChallengeSchema = createChallengeSchema.partial();
 
 export const createAssignmentSchema = z.object({
@@ -110,11 +107,83 @@ export const createAssignmentSchema = z.object({
   dueDate: z.string().datetime().optional().nullable(),
   isOptional: z.boolean().default(false),
 });
-
 export const updateAssignmentSchema = createAssignmentSchema.partial();
 
 // --------------------------------------------------------
-// CODEWARS IMPORT SCHEMAS (FASE 3)
+// COMPLEMENTARY ACADEMIC EXERCISES
+// --------------------------------------------------------
+
+export const academicSubjectSchema = z.enum([
+  'DISCRETE_MATHEMATICS',
+  'PROGRAMMING_LOGIC',
+  'CALCULUS',
+  'STATISTICS',
+  'OPERATIONS_RESEARCH',
+  'OTHER',
+]);
+
+export const academicExerciseTypeSchema = z.enum([
+  'MULTIPLE_CHOICE',
+  'TRUE_FALSE',
+  'NUMERIC',
+  'SHORT_TEXT',
+]);
+
+export const academicDifficultySchema = z.enum(['BASIC', 'INTERMEDIATE', 'ADVANCED']);
+
+const academicExerciseBaseSchema = z.object({
+  title: z.string().min(3, 'O título do exercício é obrigatório'),
+  slug: z.string().min(2, 'O slug é obrigatório'),
+  statement: z.string().min(5, 'O enunciado é obrigatório'),
+  subject: academicSubjectSchema,
+  exerciseType: academicExerciseTypeSchema,
+  difficulty: academicDifficultySchema.default('BASIC'),
+  options: z.array(z.string().min(1)).optional().nullable(),
+  correctAnswer: z.any(),
+  explanation: z.string().optional().nullable(),
+  numericTolerance: z.number().min(0).optional().nullable(),
+  tags: z.array(z.string()).default([]),
+  xpReward: z.number().int().min(5).default(30),
+  isPublished: z.boolean().default(true),
+});
+
+export const createAcademicExerciseSchema = academicExerciseBaseSchema.superRefine((data, ctx) => {
+  if (data.exerciseType === 'MULTIPLE_CHOICE' && (!data.options || data.options.length < 2)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['options'], message: 'Questões de múltipla escolha precisam de pelo menos duas alternativas.' });
+  }
+  if (data.exerciseType === 'TRUE_FALSE' && typeof data.correctAnswer !== 'boolean') {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['correctAnswer'], message: 'Questões de verdadeiro/falso exigem resposta booleana.' });
+  }
+  if (data.exerciseType === 'NUMERIC' && Number.isNaN(Number(data.correctAnswer))) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['correctAnswer'], message: 'Questões numéricas exigem uma resposta numérica.' });
+  }
+});
+
+export const updateAcademicExerciseSchema = academicExerciseBaseSchema.partial();
+
+export const submitAcademicExerciseSchema = z.object({
+  answer: z.any(),
+  assignmentId: z.string().uuid('ID da atividade inválido').optional().nullable(),
+});
+
+export const createAcademicAssignmentSchema = z.object({
+  title: z.string().min(3, 'O título da atividade é obrigatório'),
+  classId: z.string().uuid('ID da turma inválido'),
+  exerciseId: z.string().uuid('ID do exercício inválido'),
+  startDate: z.string().datetime().optional(),
+  dueDate: z.string().datetime().optional().nullable(),
+  isOptional: z.boolean().default(false),
+});
+
+export const updateAcademicAssignmentSchema = z.object({
+  title: z.string().min(3).optional(),
+  startDate: z.string().datetime().optional(),
+  dueDate: z.string().datetime().optional().nullable(),
+  isOptional: z.boolean().optional(),
+});
+
+// --------------------------------------------------------
+// CODEWARS IMPORT
 // --------------------------------------------------------
 
 export const importCodewarsChallengeSchema = z.object({
@@ -123,16 +192,8 @@ export const importCodewarsChallengeSchema = z.object({
   language: z.enum(['JAVASCRIPT', 'TYPESCRIPT', 'PYTHON', 'JAVA', 'C', 'CPP']).default('JAVASCRIPT'),
   initialCode: z.string().min(1, 'O código inicial é obrigatório'),
   testCode: z.string().default(''),
-  publicTests: z.array(z.object({
-    input: z.any(),
-    expected: z.any(),
-    description: z.string().optional(),
-  })).default([]),
-  hiddenTests: z.array(z.object({
-    input: z.any(),
-    expected: z.any(),
-    description: z.string().optional(),
-  })).default([]),
+  publicTests: z.array(z.object({ input: z.any(), expected: z.any(), description: z.string().optional() })).default([]),
+  hiddenTests: z.array(z.object({ input: z.any(), expected: z.any(), description: z.string().optional() })).default([]),
   customTitle: z.string().optional(),
   customDescription: z.string().optional(),
   xpReward: z.number().int().min(10).optional(),
@@ -158,4 +219,9 @@ export type CreateChallengeInput = z.infer<typeof createChallengeSchema>;
 export type UpdateChallengeInput = z.infer<typeof updateChallengeSchema>;
 export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>;
 export type UpdateAssignmentInput = z.infer<typeof updateAssignmentSchema>;
+export type CreateAcademicExerciseInput = z.infer<typeof createAcademicExerciseSchema>;
+export type UpdateAcademicExerciseInput = z.infer<typeof updateAcademicExerciseSchema>;
+export type SubmitAcademicExerciseInput = z.infer<typeof submitAcademicExerciseSchema>;
+export type CreateAcademicAssignmentInput = z.infer<typeof createAcademicAssignmentSchema>;
+export type UpdateAcademicAssignmentInput = z.infer<typeof updateAcademicAssignmentSchema>;
 export type ImportCodewarsChallengeInput = z.infer<typeof importCodewarsChallengeSchema>;

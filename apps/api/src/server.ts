@@ -21,7 +21,9 @@ import { learningPathRoutes } from './routes/learningPath.routes.js';
 import { moduleRoutes } from './routes/module.routes.js';
 import { topicRoutes } from './routes/topic.routes.js';
 import { challengeRoutes } from './routes/challenge.routes.js';
+import { academicExerciseRoutes } from './routes/academicExercise.routes.js';
 import { assignmentRoutes } from './routes/assignment.routes.js';
+import { academicAssignmentRoutes } from './routes/academicAssignment.routes.js';
 import { codewarsRoutes } from './routes/codewars.routes.js';
 import { executionRoutes } from './routes/execution.routes.js';
 import { gamificationRoutes } from './routes/gamification.routes.js';
@@ -85,7 +87,7 @@ export async function buildServer(): Promise<FastifyInstance> {
     openapi: {
       info: {
         title: 'FateCode Academic & Gamified API',
-        description: 'Plataforma Acadêmica Gamificada de Programação - FateCode API',
+        description: 'Plataforma acadêmica gamificada com foco em programação e módulos acadêmicos complementares.',
         version: '1.0.0',
       },
       servers: [
@@ -131,7 +133,9 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(moduleRoutes, { prefix: '/api/modules' });
   await app.register(topicRoutes, { prefix: '/api/topics' });
   await app.register(challengeRoutes, { prefix: '/api/challenges' });
+  await app.register(academicExerciseRoutes, { prefix: '/api/academic-exercises' });
   await app.register(assignmentRoutes, { prefix: '/api/assignments' });
+  await app.register(academicAssignmentRoutes, { prefix: '/api/academic-assignments' });
   await app.register(codewarsRoutes, { prefix: '/api/codewars' });
   await app.register(adminRoutes, { prefix: '/api/admin' });
   await app.register(teacherAnalyticsRoutes, { prefix: '/api/teacher' });

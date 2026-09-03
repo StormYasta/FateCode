@@ -18,8 +18,10 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) =
   });
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+    root.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('fatecode_theme', theme);
   }, [theme]);
 

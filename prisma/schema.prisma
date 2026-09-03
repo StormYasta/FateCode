@@ -39,6 +39,28 @@ enum Difficulty {
   KYU_1
 }
 
+enum AcademicSubject {
+  DISCRETE_MATHEMATICS
+  PROGRAMMING_LOGIC
+  CALCULUS
+  STATISTICS
+  OPERATIONS_RESEARCH
+  OTHER
+}
+
+enum AcademicExerciseType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  NUMERIC
+  SHORT_TEXT
+}
+
+enum AcademicDifficulty {
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+}
+
 enum Language {
   JAVASCRIPT
   TYPESCRIPT
@@ -107,6 +129,7 @@ model User {
   profile             Profile?
   classMemberships    ClassMember[]
   submissions         Submission[]
+  academicSubmissions AcademicSubmission[]
   executions          Execution[]
   codeSnapshots       CodeSnapshot[]
   developmentEvents   DevelopmentEvent[]
@@ -123,16 +146,16 @@ model User {
 }
 
 model Profile {
-  id              String             @id @default(uuid())
-  userId          String             @unique
-  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  githubUsername  String?
-  codewarsUsername String?
-  preferredLanguage Language         @default(JAVASCRIPT)
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  githubUsername     String?
+  codewarsUsername   String?
+  preferredLanguage  Language           @default(JAVASCRIPT)
   solutionVisibility SolutionVisibility @default(PUBLIC)
-  totalXP         Int                @default(0)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  totalXP            Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 }
 
 // --------------------------------------------------------
@@ -140,29 +163,29 @@ model Profile {
 // --------------------------------------------------------
 
 model Faculty {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
-  code      String    @unique
+  code      String   @unique
   city      String?
   state     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  courses   Course[]
-  rankings  Ranking[]
+  courses  Course[]
+  rankings Ranking[]
 
   @@index([code])
 }
 
 model Course {
-  id          String         @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   code        String
   description String?
   facultyId   String
-  faculty     Faculty        @relation(fields: [facultyId], references: [id], onDelete: Cascade)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  faculty     Faculty  @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   classes       Class[]
   learningPaths LearningPath[]
@@ -173,32 +196,33 @@ model Course {
 }
 
 model Class {
-  id        String        @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
   code      String
   semester  String
   year      Int
   courseId  String
-  course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  members     ClassMember[]
-  assignments Assignment[]
-  rankings    Ranking[]
+  members             ClassMember[]
+  assignments         Assignment[]
+  academicAssignments AcademicAssignment[]
+  rankings            Ranking[]
 
   @@unique([courseId, code])
   @@index([courseId])
 }
 
 model ClassMember {
-  id        String    @id @default(uuid())
-  classId   String
-  class     Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      ClassRole @default(STUDENT)
-  joinedAt  DateTime  @default(now())
+  id       String    @id @default(uuid())
+  classId  String
+  class    Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     ClassRole @default(STUDENT)
+  joinedAt DateTime  @default(now())
 
   @@unique([classId, userId])
   @@index([classId])
@@ -206,7 +230,7 @@ model ClassMember {
 }
 
 // --------------------------------------------------------
-// PEDAGOGICAL STRUCTURE (PHASE 2+)
+// PEDAGOGICAL STRUCTURE
 // --------------------------------------------------------
 
 model LearningPath {
@@ -219,7 +243,7 @@ model LearningPath {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  modules     Module[]
+  modules Module[]
 }
 
 model Module {
@@ -232,54 +256,58 @@ model Module {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  topics         Topic[]
+  topics Topic[]
 
   @@index([learningPathId])
 }
 
 model Topic {
-  id          String      @id @default(uuid())
+  id          String   @id @default(uuid())
   title       String
   description String?
-  order       Int         @default(0)
+  order       Int      @default(0)
   moduleId    String
-  module      Module      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  challenges  Challenge[]
+  challenges Challenge[]
 
   @@index([moduleId])
 }
 
-model Challenge {
-  id             String          @id @default(uuid())
-  title          String
-  slug           String          @unique
-  description    String          @db.Text
-  difficulty     Difficulty      @default(KYU_8)
-  source         ChallengeSource @default(INTERNAL)
-  externalId     String?         // Codewars ID
-  language       Language        @default(JAVASCRIPT)
-  initialCode    String          @db.Text
-  testCode       String          @db.Text
-  publicTests    Json            // Array of public test cases
-  hiddenTests    Json            // Array of hidden test cases
-  tags           String[]
-  xpReward       Int             @default(50)
-  isDaily        Boolean         @default(false)
-  topicId        String?
-  topic          Topic?          @relation(fields: [topicId], references: [id], onDelete: SetNull)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+// --------------------------------------------------------
+// PROGRAMMING MODULE
+// --------------------------------------------------------
 
-  assignments    Assignment[]
-  dailyChallenges DailyChallenge[]
-  submissions    Submission[]
-  executions     Execution[]
-  codeSnapshots  CodeSnapshot[]
+model Challenge {
+  id           String          @id @default(uuid())
+  title        String
+  slug         String          @unique
+  description  String          @db.Text
+  difficulty   Difficulty      @default(KYU_8)
+  source       ChallengeSource @default(INTERNAL)
+  externalId   String?
+  language     Language        @default(JAVASCRIPT)
+  initialCode  String          @db.Text
+  testCode     String          @db.Text
+  publicTests  Json
+  hiddenTests  Json
+  tags         String[]
+  xpReward     Int             @default(50)
+  isDaily      Boolean         @default(false)
+  topicId      String?
+  topic        Topic?          @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  assignments       Assignment[]
+  dailyChallenges   DailyChallenge[]
+  submissions       Submission[]
+  executions        Execution[]
+  codeSnapshots     CodeSnapshot[]
   developmentEvents DevelopmentEvent[]
-  comments       Comment[]
+  comments          Comment[]
 
   @@index([externalId])
   @@index([difficulty])
@@ -287,17 +315,17 @@ model Challenge {
 }
 
 model Assignment {
-  id          String     @id @default(uuid())
+  id          String    @id @default(uuid())
   title       String
   classId     String
-  class       Class      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
   challengeId String
-  challenge   Challenge  @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  startDate   DateTime   @default(now())
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  startDate   DateTime  @default(now())
   dueDate     DateTime?
-  isOptional  Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  isOptional  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   submissions Submission[]
 
@@ -317,7 +345,77 @@ model DailyChallenge {
 }
 
 // --------------------------------------------------------
-// CODE EXECUTION & SUBMISSIONS
+// DISCRETE MATHEMATICS / COMPLEMENTARY ACADEMIC MODULE
+// --------------------------------------------------------
+
+model AcademicExercise {
+  id               String               @id @default(uuid())
+  title            String
+  slug             String               @unique
+  statement        String               @db.Text
+  subject          AcademicSubject
+  exerciseType     AcademicExerciseType
+  difficulty       AcademicDifficulty   @default(BASIC)
+  options          Json?
+  correctAnswer    Json
+  explanation      String?              @db.Text
+  numericTolerance Float?
+  tags             String[]
+  xpReward         Int                  @default(30)
+  isPublished      Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  assignments AcademicAssignment[]
+  submissions AcademicSubmission[]
+
+  @@index([subject])
+  @@index([exerciseType])
+  @@index([difficulty])
+  @@index([isPublished])
+}
+
+model AcademicAssignment {
+  id         String           @id @default(uuid())
+  title      String
+  classId    String
+  class      Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  exerciseId String
+  exercise   AcademicExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  startDate  DateTime         @default(now())
+  dueDate    DateTime?
+  isOptional Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  submissions AcademicSubmission[]
+
+  @@index([classId])
+  @@index([exerciseId])
+}
+
+model AcademicSubmission {
+  id           String             @id @default(uuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId   String
+  exercise     AcademicExercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  assignmentId String?
+  assignment   AcademicAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  answer       Json
+  isCorrect    Boolean
+  score        Float              @default(0)
+  xpEarned     Int                @default(0)
+  submittedAt  DateTime           @default(now())
+
+  @@index([userId])
+  @@index([exerciseId])
+  @@index([assignmentId])
+  @@index([isCorrect])
+}
+
+// --------------------------------------------------------
+// PROGRAMMING EXECUTION & SUBMISSIONS
 // --------------------------------------------------------
 
 model Submission {
@@ -339,7 +437,7 @@ model Submission {
   attemptCount    Int              @default(1)
   submittedAt     DateTime         @default(now())
 
-  integrityAnalysis   IntegrityAnalysis?
+  integrityAnalysis    IntegrityAnalysis?
   similaritiesAsSource CodeSimilarity[] @relation("SimilaritySource")
   similaritiesAsTarget CodeSimilarity[] @relation("SimilarityTarget")
 
@@ -370,16 +468,16 @@ model Execution {
 }
 
 model CodeSnapshot {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   challengeId String
   challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  code        String   @db.Text
-  language    Language @default(JAVASCRIPT)
+  code        String    @db.Text
+  language    Language  @default(JAVASCRIPT)
   charCount   Int
   lineCount   Int
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@index([userId, challengeId])
 }
@@ -408,7 +506,7 @@ model XPTransaction {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   amount      Int
   reason      String
-  referenceId String?  // ID of submission, daily challenge, achievement, etc.
+  referenceId String?
   createdAt   DateTime @default(now())
 
   @@index([userId])
@@ -416,25 +514,25 @@ model XPTransaction {
 }
 
 model Streak {
-  id               String   @id @default(uuid())
-  userId           String   @unique
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentStreak    Int      @default(0)
-  maxStreak        Int      @default(0)
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak    Int       @default(0)
+  maxStreak        Int       @default(0)
   lastActivityDate DateTime? @db.Date
-  updatedAt        DateTime @updatedAt
+  updatedAt        DateTime  @updatedAt
 }
 
 model Season {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
   startDate DateTime
   endDate   DateTime
-  isActive  Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  rankings  Ranking[]
+  rankings Ranking[]
 }
 
 model Ranking {
@@ -467,7 +565,7 @@ model Achievement {
   xpReward    Int      @default(100)
   createdAt   DateTime @default(now())
 
-  users       UserAchievement[]
+  users UserAchievement[]
 }
 
 model UserAchievement {
@@ -497,23 +595,23 @@ model Comment {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  reports     CommentReport[]
+  reports CommentReport[]
 
   @@index([challengeId])
   @@index([userId])
 }
 
 model CommentReport {
-  id          String   @id @default(uuid())
-  commentId   String
-  comment     Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  reporterId  String
-  reporter    User     @relation("ReporterRelation", fields: [reporterId], references: [id], onDelete: Cascade)
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  reason      String
-  status      String   @default("PENDING") // PENDING, RESOLVED, DISMISSED
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  commentId  String
+  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter   User     @relation("ReporterRelation", fields: [reporterId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reason     String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
 
   @@index([commentId])
   @@index([reporterId])
@@ -528,7 +626,7 @@ model IntegrityAnalysis {
   submissionId      String        @unique
   submission        Submission    @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   riskLevel         IntegrityRisk @default(NORMAL)
-  anomalyIndicators Json          // Paste burst, short duration, low iterations, etc.
+  anomalyIndicators Json
   similarityScore   Float?
   analysisReport    String?       @db.Text
   analyzedAt        DateTime      @default(now())
